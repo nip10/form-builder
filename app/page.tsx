@@ -1,103 +1,382 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import React, { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { PlusCircle, Trash2, Loader2 } from "lucide-react";
+import { FormBuilderProvider } from "@/contexts/FormBuilderContext";
+import FormBuilder from "@/components/FormBuilder";
+import { toast, Toaster } from "sonner";
+
+interface Form {
+  _id: string;
+  title: string;
+  description: string;
+  created_at: string;
+  updated_at: string;
+  active: boolean;
+  version: number;
+}
+
+export default function HomePage() {
+  const [forms, setForms] = useState<Form[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedFormId, setSelectedFormId] = useState<string | null>(null);
+  const [newFormTitle, setNewFormTitle] = useState("");
+  const [isCreatingForm, setIsCreatingForm] = useState(false);
+
+  // Mock user ID (would typically come from auth)
+  const userId = "user123";
+
+  // Fetch forms on component mount
+  useEffect(() => {
+    fetchForms();
+  }, []);
+
+  const fetchForms = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await fetch(`/api/forms?ownerId=${userId}`);
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch forms");
+      }
+
+      const data = await response.json();
+      setForms(data.forms || []);
+    } catch (err: any) {
+      setError(err.message || "Error fetching forms");
+      console.error("Error fetching forms:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateForm = async () => {
+    if (!newFormTitle.trim()) {
+      toast.error("Form title is required");
+      return;
+    }
+
+    try {
+      setIsCreatingForm(true);
+
+      const response = await fetch("/api/forms", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: newFormTitle,
+          owner_id: userId,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create form");
+      }
+
+      const data = await response.json();
+
+      toast.success("Form created successfully");
+
+      // Add new form to the list
+      setForms([...forms, data.form]);
+
+      // Select the new form
+      setSelectedFormId(data.form._id);
+
+      // Reset form
+      setNewFormTitle("");
+    } catch (err: any) {
+      toast.error(err.message || "Error creating form");
+      console.error("Error creating form:", err);
+    } finally {
+      setIsCreatingForm(false);
+    }
+  };
+
+  const handleDeleteForm = async (formId: string) => {
+    if (
+      confirm(
+        "Are you sure you want to delete this form? This action cannot be undone."
+      )
+    ) {
+      try {
+        const response = await fetch(`/api/forms/${formId}`, {
+          method: "DELETE",
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to delete form");
+        }
+
+        toast.success("Form deleted successfully");
+
+        // Remove the deleted form from the list
+        setForms(forms.filter((form) => form._id !== formId));
+
+        // If the deleted form was selected, unselect it
+        if (selectedFormId === formId) {
+          setSelectedFormId(null);
+        }
+      } catch (err: any) {
+        toast.error(err.message || "Error deleting form");
+        console.error("Error deleting form:", err);
+      }
+    }
+  };
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <main className="container mx-auto py-8 px-4">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold">Form Builder</h1>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              New Form
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create New Form</DialogTitle>
+              <DialogDescription>
+                Enter a title for your new form
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="form-title">Form Title</Label>
+                <Input
+                  id="form-title"
+                  value={newFormTitle}
+                  onChange={(e) => setNewFormTitle(e.target.value)}
+                  placeholder="Enter form title"
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setNewFormTitle("")}>
+                Cancel
+              </Button>
+              <Button onClick={handleCreateForm} disabled={isCreatingForm}>
+                {isCreatingForm && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                Create Form
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="lg:col-span-3">
+          <Card>
+            <CardHeader>
+              <CardTitle>Your Forms</CardTitle>
+              <CardDescription>
+                Select a form to edit or create a new one
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="flex justify-center p-4">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                </div>
+              ) : error ? (
+                <div className="text-center p-4 text-red-500">
+                  <p>{error}</p>
+                  <Button
+                    variant="outline"
+                    className="mt-2"
+                    onClick={fetchForms}
+                  >
+                    Try Again
+                  </Button>
+                </div>
+              ) : forms.length === 0 ? (
+                <div className="text-center p-4 text-gray-500">
+                  <p>No forms found. Create your first form to get started.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {forms.map((form) => (
+                    <div
+                      key={form._id}
+                      className={`p-3 rounded flex justify-between items-center cursor-pointer hover:bg-gray-100 ${
+                        selectedFormId === form._id ? "bg-gray-100" : ""
+                      }`}
+                      onClick={() => setSelectedFormId(form._id)}
+                    >
+                      <div>
+                        <h3 className="font-medium">{form.title}</h3>
+                        <p className="text-xs text-gray-500">
+                          Last updated:{" "}
+                          {new Date(form.updated_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteForm(form._id);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+            <CardFooter>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="w-full">
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    New Form
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Create New Form</DialogTitle>
+                    <DialogDescription>
+                      Enter a title for your new form
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="form-title-2">Form Title</Label>
+                      <Input
+                        id="form-title-2"
+                        value={newFormTitle}
+                        onChange={(e) => setNewFormTitle(e.target.value)}
+                        placeholder="Enter form title"
+                      />
+                    </div>
+                  </div>
+
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() => setNewFormTitle("")}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleCreateForm}
+                      disabled={isCreatingForm}
+                    >
+                      {isCreatingForm && (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      )}
+                      Create Form
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </CardFooter>
+          </Card>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+
+        <div className="lg:col-span-9">
+          {selectedFormId ? (
+            <FormBuilderProvider>
+              <FormBuilder formId={selectedFormId} ownerId={userId} />
+            </FormBuilderProvider>
+          ) : (
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center p-12">
+                  <h2 className="text-xl font-semibold mb-2">
+                    No Form Selected
+                  </h2>
+                  <p className="text-gray-500 mb-6">
+                    Select a form from the sidebar or create a new one to get
+                    started.
+                  </p>
+
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Create New Form
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Create New Form</DialogTitle>
+                        <DialogDescription>
+                          Enter a title for your new form
+                        </DialogDescription>
+                      </DialogHeader>
+
+                      <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                          <Label htmlFor="form-title-3">Form Title</Label>
+                          <Input
+                            id="form-title-3"
+                            value={newFormTitle}
+                            onChange={(e) => setNewFormTitle(e.target.value)}
+                            placeholder="Enter form title"
+                          />
+                        </div>
+                      </div>
+
+                      <DialogFooter>
+                        <Button
+                          variant="outline"
+                          onClick={() => setNewFormTitle("")}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          onClick={handleCreateForm}
+                          disabled={isCreatingForm}
+                        >
+                          {isCreatingForm && (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          )}
+                          Create Form
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
+      <Toaster />
+    </main>
   );
 }
