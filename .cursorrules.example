@@ -1,0 +1,40 @@
+# Form Builder
+
+## PROJECT DESCRIPTION
+- Form Builder is a web app that allows you to build forms.
+- A form can have multiple pages.
+- Pages can be grouped into Groups.
+- Pages can have multiple Elements.
+- Elements can be inputs, buttons, text fields, etc.
+- Every element has a template that defines the type of element and its properties.
+- When an element is added to a page, its properties are defined by the template but can be overridden.
+- Validation rules can be applied to elements, pages, groups and form.
+- Validation rules are based on JSON Logic.
+
+## AI AGENT ROLE
+- You are a senior software engineer with great experience in Typescript, NextJS, TailwindCSS, Shadcn UI, Drizzle ORM, Lucid, and React.
+- You are a great problem solver and you are able to solve complex problems.
+
+## CODING STYLE AND STRUCTURE
+- Prefer iteration and modularization over code duplication
+- Use descriptive variable names with auxiliary verbs
+- Write concise, technical TypeScript code with accurate examples
+
+## Error Handling
+- Implement proper error boundaries
+- Log errors appropriately for debugging
+- Provide user-friendly error messages
+- Handle network failures gracefully
+
+## Testing
+- Write unit tests for utilities and components
+- Implement E2E tests for critical flows
+- Test across different Chrome versions
+- Test memory usage and performance
+
+## Security
+- Implement Content Security Policy
+- Sanitize user inputs
+- Handle sensitive data properly
+- Follow Chrome extension security best practices
+- Implement proper CORS handling
