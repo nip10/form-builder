@@ -74,7 +74,7 @@ export async function POST(
       type: data.element.type,
       label: data.element.label,
       required: data.element.required || false,
-      order: (page.elements?.length || 0) + 1,
+      order: (page.element_instances?.length || 0) + 1,
       default_value: data.element.default_value,
       properties: data.element.properties || {},
       validations: data.element.validations || [],
@@ -87,7 +87,7 @@ export async function POST(
     await PageModel.updateOne(
       { _id: new ObjectId(data.pageId) },
       {
-        $push: { elements: newElement._id },
+        $push: { element_instances: newElement._id },
       }
     );
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   SubmissionDocument as BaseSubmissionDocument,
   ElementDocument,
@@ -144,7 +144,7 @@ const SubmissionsView: React.FC<SubmissionsViewProps> = ({ formId, form }) => {
   const [selectedSubmission, setSelectedSubmission] =
     useState<SubmissionDocument | null>(null);
 
-  const fetchSubmissions = async () => {
+  const fetchSubmissions = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -163,11 +163,11 @@ const SubmissionsView: React.FC<SubmissionsViewProps> = ({ formId, form }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [formId]);
 
   useEffect(() => {
     fetchSubmissions();
-  }, [formId, fetchSubmissions]);
+  }, [fetchSubmissions]);
 
   const handleExportCSV = () => {
     if (submissions.length === 0) {

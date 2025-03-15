@@ -115,8 +115,8 @@ const getTargetElements = (
     if (element._id) {
       // Find the page this element belongs to
       const page = pages.find((p) => {
-        if (!p.elements) return false;
-        return p.elements.some((eId) => {
+        if (!p.element_instances) return false;
+        return p.element_instances.some((eId) => {
           if (!eId) return false;
           return eId.toString() === element._id!.toString();
         });

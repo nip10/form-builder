@@ -47,7 +47,7 @@ const getFormElements = async (
     });
 
     // Extract all element IDs from pages
-    const elementIds = pages.flatMap((page) => page.elements || []);
+    const elementIds = pages.flatMap((page) => page.element_instances || []);
     if (elementIds.length === 0) return [];
 
     // Get all elements
@@ -234,9 +234,9 @@ export const evaluateConditions = async (
         }
 
         // Get elements for this page
-        if (page.elements && page.elements.length > 0) {
+        if (page.element_instances && page.element_instances.length > 0) {
           const elements = await ElementModel.find({
-            _id: { $in: page.elements },
+            _id: { $in: page.element_instances },
           });
 
           for (const element of elements) {

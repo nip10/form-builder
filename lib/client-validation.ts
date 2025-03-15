@@ -5,11 +5,11 @@ import { ValidationResult } from "@/types/form";
  */
 
 /**
- * Validates a single element
+ * Validates a single element instance
  */
 export const validateElementClient = async (
   formId: string,
-  elementId: string,
+  elementInstanceId: string,
   value: any
 ): Promise<ValidationResult> => {
   try {
@@ -18,7 +18,7 @@ export const validateElementClient = async (
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ elementId, value }),
+      body: JSON.stringify({ elementId: elementInstanceId, value }),
     });
 
     if (!response.ok) {
@@ -33,7 +33,7 @@ export const validateElementClient = async (
       valid: false,
       errors: [
         {
-          elementId,
+          elementId: elementInstanceId,
           message: "An error occurred while validating this field",
         },
       ],
@@ -42,7 +42,7 @@ export const validateElementClient = async (
 };
 
 /**
- * Validates a page with all its elements
+ * Validates a page with all its element instances
  */
 export const validatePageClient = async (
   formId: string,
@@ -109,6 +109,8 @@ export const evaluateConditionsClient = async (
 /**
  * Client-side implementation of basic element validation
  * This can be used for immediate feedback without API calls
+ *
+ * Note: This function expects a combined element (template + instance)
  */
 export const validateElementBasic = (
   element: any,
@@ -182,6 +184,28 @@ export const validateElementBasic = (
     }
   }
 
+  // Process each validation rule from the element instance
+  if (element.validations && element.validations.length > 0) {
+    for (const validation of element.validations) {
+      try {
+        if (validation.type === "regex" && validation.rule) {
+          const regex = new RegExp(validation.rule);
+          if (!regex.test(String(value))) {
+            result.valid = false;
+            result.errors.push({
+              elementId: element._id?.toString(),
+              message: validation.error_message || "Invalid format",
+              rule: validation.rule,
+            });
+          }
+        }
+        // Add other validation types as needed
+      } catch (error) {
+        console.error("Validation error:", error);
+      }
+    }
+  }
+
   return result;
 };
 
@@ -205,6 +229,8 @@ export const isInputElement = (type: string): boolean => {
 /**
  * Client-side implementation of page validation
  * This can be used for immediate feedback without API calls
+ *
+ * Note: This function expects a page with combined elements (template + instance)
  */
 export const validatePageBasic = (
   page: any,

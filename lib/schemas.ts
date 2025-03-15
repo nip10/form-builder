@@ -88,12 +88,12 @@ export const PageSchema = schema(
     order: types.number(),
     active: types.boolean({ required: true }),
     group_id: types.objectId(),
-    elements: types.array(types.objectId()),
+    element_instances: types.array(types.objectId()), // Ref to element instances
   },
   {
     defaults: {
       active: true,
-      elements: [],
+      element_instances: [],
     },
   }
 );
@@ -174,3 +174,59 @@ export const SubmissionSchema = schema(
 );
 export type SubmissionDocument = (typeof SubmissionSchema)[0];
 export type SubmissionOptions = (typeof SubmissionSchema)[1];
+
+// Base element template (reusable definition)
+export const ElementTemplateSchema = schema({
+  type: types.enum(elementTypes),
+  label: types.string(),
+  default_value: types.string(),
+  properties: types.object({}, { additionalProperties: true }),
+});
+export type ElementTemplateDocument = (typeof ElementTemplateSchema)[0];
+export type ElementTemplateOptions = (typeof ElementTemplateSchema)[1];
+
+// Element instance (usage in a specific context)
+export const ElementInstanceSchema = schema({
+  template_id: types.objectId(), // Reference to template
+  page_id: types.objectId(), // Context where it's used
+  required: types.boolean({ required: true }),
+  order: types.number(),
+  validations: types.array(
+    types.object({
+      type: types.enum(elementValidations),
+      rule: types.any(), // JSON Logic rule
+      error_message: types.string(),
+    })
+  ),
+  // Potential overrides for label, properties, etc.
+  label_override: types.string({ required: false }),
+  properties_override: types.object(
+    {},
+    {
+      additionalProperties: true,
+      required: false,
+    }
+  ),
+});
+export type ElementInstanceDocument = (typeof ElementInstanceSchema)[0];
+export type ElementInstanceOptions = (typeof ElementInstanceSchema)[1];
+
+export const FormPageSchema = schema({
+  form_id: types.objectId(),
+  page_id: types.objectId(),
+  order: types.number(),
+  conditions: types.array(types.objectId()), // Form-specific conditions
+});
+export type FormPageDocument = (typeof FormPageSchema)[0];
+export type FormPageOptions = (typeof FormPageSchema)[1];
+
+/* mentTemplate (base definition)
+  ↓
+ElementInstance (context-specific usage with validations)
+  ↓
+Page (contains references to element instances)
+  ↓
+FormPage (junction connecting forms to pages with conditions)
+  ↓
+Form (references form-pages)
+ */

@@ -6,18 +6,25 @@ import {
   ConditionModel,
   GroupModel,
   FormModel,
+  ElementInstanceModel,
+  FormPageModel,
 } from "@/lib/models";
 import { ObjectId } from "bson";
 import { validateElement } from "@/lib/validation";
 
+interface RouteParams {
+  params: Promise<{
+    formId: string;
+  }>;
+}
+
 // POST /api/forms/[formId]/validate - Validate a single element
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ formId: string }> }
-) {
+export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
+    // Initialize Papr for this request
     await initializePapr();
 
+    // Await the params Promise to get the formId
     const { formId } = await params;
     const { elementId, value } = await request.json();
 
@@ -25,16 +32,46 @@ export async function POST(
       return NextResponse.json({ error: "Invalid ID format" }, { status: 400 });
     }
 
-    // Find the element
-    const element = await ElementModel.findOne({
+    // Find the element instance
+    const elementInstance = await ElementInstanceModel.findOne({
       _id: new ObjectId(elementId),
     });
-    if (!element) {
-      return NextResponse.json({ error: "Element not found" }, { status: 404 });
+
+    if (!elementInstance) {
+      return NextResponse.json(
+        { error: "Element instance not found" },
+        { status: 404 }
+      );
     }
 
+    // Find the element template
+    const elementTemplate = await ElementModel.findOne({
+      _id: elementInstance.template_id,
+    });
+
+    if (!elementTemplate) {
+      return NextResponse.json(
+        { error: "Element template not found" },
+        { status: 404 }
+      );
+    }
+
+    // Combine template and instance for validation
+    const combinedElement = {
+      ...elementTemplate,
+      _id: elementInstance._id, // Use instance ID for validation results
+      required: elementInstance.required,
+      validations: elementInstance.validations || [],
+      // Override template properties with instance-specific ones if they exist
+      label: elementInstance.label_override || elementTemplate.label,
+      properties: {
+        ...(elementTemplate.properties || {}),
+        ...(elementInstance.properties_override || {}),
+      },
+    };
+
     // Validate the element
-    const result = validateElement(element, value);
+    const result = validateElement(combinedElement, value);
 
     // Convert ObjectId to string in errors
     const sanitizedResult = {
@@ -57,13 +94,12 @@ export async function POST(
 }
 
 // PUT /api/forms/[formId]/validate - Validate a page
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ formId: string }> }
-) {
+export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
+    // Initialize Papr for this request
     await initializePapr();
 
+    // Await the params Promise to get the formId
     const { formId } = await params;
     const { pageId, formData } = await request.json();
 
@@ -77,9 +113,19 @@ export async function PUT(
       return NextResponse.json({ error: "Page not found" }, { status: 404 });
     }
 
-    // Find all elements for this page
-    const elements = await ElementModel.find({
-      _id: { $in: page.elements || [] },
+    // Find all element instances for this page
+    const elementInstances = await ElementInstanceModel.find({
+      _id: { $in: page.element_instances || [] },
+    });
+
+    // Get all template IDs
+    const templateIds = elementInstances
+      .map((instance) => instance.template_id)
+      .filter((id): id is ObjectId => id !== undefined);
+
+    // Find all element templates
+    const elementTemplates = await ElementModel.find({
+      _id: { $in: templateIds },
     });
 
     // Validate each element
@@ -92,10 +138,37 @@ export async function PUT(
       }>,
     };
 
-    for (const element of elements) {
-      const elementId = element._id.toString();
-      const value = formData[elementId];
-      const elementValidation = validateElement(element, value);
+    for (const instance of elementInstances) {
+      const instanceId = instance._id.toString();
+      const value = formData[instanceId];
+
+      // Find the corresponding template
+      const template = instance.template_id
+        ? elementTemplates.find(
+            (t) => t._id.toString() === instance.template_id?.toString()
+          )
+        : undefined;
+
+      if (!template) {
+        console.error(`Template not found for instance ${instanceId}`);
+        continue;
+      }
+
+      // Combine template and instance for validation
+      const combinedElement = {
+        ...template,
+        _id: instance._id, // Use instance ID for validation results
+        required: instance.required,
+        validations: instance.validations || [],
+        // Override template properties with instance-specific ones if they exist
+        label: instance.label_override || template.label,
+        properties: {
+          ...(template.properties || {}),
+          ...(instance.properties_override || {}),
+        },
+      };
+
+      const elementValidation = validateElement(combinedElement, value);
 
       if (!elementValidation.valid) {
         result.valid = false;
@@ -121,13 +194,12 @@ export async function PUT(
 }
 
 // PATCH /api/forms/[formId]/validate - Evaluate conditions
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ formId: string }> }
-) {
+export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
+    // Initialize Papr for this request
     await initializePapr();
 
+    // Await the params Promise to get the formId
     const { formId } = await params;
     const { formData } = await request.json();
 
@@ -144,14 +216,22 @@ export async function PATCH(
       return NextResponse.json({ error: "Form not found" }, { status: 404 });
     }
 
+    // Get all form-page junctions for this form
+    const formPages = await FormPageModel.find({
+      form_id: form._id,
+    });
+
     // Get all conditions for this form
     const conditions = await ConditionModel.find({
       _id: { $in: form.conditions || [] },
     });
 
-    // Get all pages and their elements
+    // Get all pages referenced in form-pages
+    const pageIds = formPages
+      .map((fp) => fp.page_id)
+      .filter((id): id is ObjectId => id !== undefined);
     const pages = await PageModel.find({
-      _id: { $in: form.pages || [] },
+      _id: { $in: pageIds },
     });
 
     // Get all groups
@@ -169,21 +249,21 @@ export async function PATCH(
       }
     }
 
-    // Set default visibility for pages and elements
+    // Set default visibility for pages and element instances
     for (const page of pages) {
       if (page._id) {
         visibility[`page_${page._id.toString()}`] = true;
       }
 
-      // Get elements for this page
-      if (page.elements && page.elements.length > 0) {
-        const elements = await ElementModel.find({
-          _id: { $in: page.elements },
+      // Get element instances for this page
+      if (page.element_instances && page.element_instances.length > 0) {
+        const elementInstances = await ElementInstanceModel.find({
+          _id: { $in: page.element_instances },
         });
 
-        for (const element of elements) {
-          if (element._id) {
-            visibility[`element_${element._id.toString()}`] = true;
+        for (const instance of elementInstances) {
+          if (instance._id) {
+            visibility[`element_${instance._id.toString()}`] = true;
           }
         }
       }
