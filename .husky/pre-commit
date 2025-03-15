@@ -1,1 +1,1 @@
-node lint-staged
+pnpm lint-staged

@@ -8,4 +8,5 @@ export default {
   },
   out: "./migrations",
   tablesFilter: ["forms_*"],
+  verbose: true,
 } satisfies Config;

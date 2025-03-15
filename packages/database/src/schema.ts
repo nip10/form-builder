@@ -81,7 +81,7 @@ export const form = createTable("form", {
   description: text("description"),
   status: formStatusEnum("status").notNull().default('draft'),
   currentVersion: integer("current_version").notNull().default(1),
-  forkedFromId: text("forked_from_id").notNull().references((): AnyPgColumn => form.id),
+  forkedFromId: integer("forked_from_id").notNull().references((): AnyPgColumn => form.id),
   forkDate: timestamp("fork_date"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -91,7 +91,7 @@ export const form = createTable("form", {
 
 export const formVersion = createTable("form_version", {
   id: serial('id').primaryKey(),
-  formId: text("form_id").notNull().references(() => form.id),
+  formId: integer("form_id").notNull().references(() => form.id),
   version: integer("version").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   createdBy: text("created_by").notNull(),
@@ -100,7 +100,7 @@ export const formVersion = createTable("form_version", {
 
 export const formPublishAudit = createTable("form_publish_audit", {
   id: serial('id').primaryKey(),
-  formId: text("form_id").notNull().references(() => form.id),
+  formId: integer("form_id").notNull().references(() => form.id),
   version: integer("version").notNull(),
   publishedAt: timestamp("published_at").notNull().defaultNow(),
   publishedBy: text("published_by").notNull(),
@@ -111,8 +111,8 @@ export const formPublishAudit = createTable("form_publish_audit", {
 // 3. INSTANCE TABLES
 export const groupInstance = createTable("group_instance", {
   id: serial('id').primaryKey(),
-  templateId: text("template_id").notNull().references(() => groupTemplate.id),
-  formId: text("form_id").notNull().references(() => form.id),
+  templateId: integer("template_id").notNull().references(() => groupTemplate.id),
+  formId: integer("form_id").notNull().references(() => form.id),
   orderIndex: integer("order_index").notNull(),
   titleOverride: text("title_override"),
   descriptionOverride: text("description_override"),
@@ -123,8 +123,8 @@ export const groupInstance = createTable("group_instance", {
 
 export const pageInstance = createTable("page_instance", {
   id: serial('id').primaryKey(),
-  templateId: text("template_id").notNull().references(() => pageTemplate.id),
-  groupInstanceId: text("group_instance_id").notNull().references(() => groupInstance.id),
+  templateId: integer("template_id").notNull().references(() => pageTemplate.id),
+  groupInstanceId: integer("group_instance_id").notNull().references(() => groupInstance.id),
   orderIndex: integer("order_index").notNull(),
   titleOverride: text("title_override"),
   descriptionOverride: text("description_override"),
@@ -135,8 +135,8 @@ export const pageInstance = createTable("page_instance", {
 
 export const elementInstance = createTable("element_instance", {
   id: serial('id').primaryKey(),
-  templateId: text("template_id").notNull().references(() => elementTemplate.id),
-  pageInstanceId: text("page_instance_id").notNull().references(() => pageInstance.id),
+  templateId: integer("template_id").notNull().references(() => elementTemplate.id),
+  pageInstanceId: integer("page_instance_id").notNull().references(() => pageInstance.id),
   orderIndex: integer("order_index").notNull(),
   required: boolean("required").notNull().default(false),
   labelOverride: text("label_override"),
@@ -149,7 +149,7 @@ export const elementInstance = createTable("element_instance", {
 // 4. VALIDATION AND CONDITIONAL LOGIC
 export const formValidation = createTable("form_validation", {
   id: serial('id').primaryKey(),
-  formId: text("form_id").notNull().references(() => form.id),
+  formId: integer("form_id").notNull().references(() => form.id),
   name: text("name").notNull(),
   rule: jsonb("rule").notNull(),
   errorMessage: text("error_message").notNull(),
@@ -160,12 +160,12 @@ export const formValidation = createTable("form_validation", {
 
 export const condition = createTable("condition", {
   id: serial('id').primaryKey(),
-  formId: text("form_id").notNull().references(() => form.id),
+  formId: integer("form_id").notNull().references(() => form.id),
   name: text("name"),
   rule: jsonb("rule").notNull(),
   action: conditionActionEnum("action").notNull(),
   targetType: targetTypeEnum("target_type").notNull(),
-  targetId: text("target_id").notNull(),
+  targetId: integer("target_id").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -173,7 +173,7 @@ export const condition = createTable("condition", {
 // 5. FORM SUBMISSIONS
 export const submission = createTable("submission", {
   id: serial('id').primaryKey(),
-  formId: text("form_id").notNull().references(() => form.id),
+  formId: integer("form_id").notNull().references(() => form.id),
   formVersion: integer("form_version").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   completed: boolean("completed").notNull().default(false),
@@ -200,7 +200,7 @@ export const changeLog = createTable("change_log", {
 export const formVersionUnique = createTable(
   "form_version_unique",
   {
-    formId: text("form_id").notNull().references(() => form.id),
+    formId: integer("form_id").notNull().references(() => form.id),
     version: integer("version").notNull(),
   },
   (t) => [
@@ -212,7 +212,7 @@ export const formVersionUnique = createTable(
 export const submissionFormVersion = createTable(
   "submission_form_version",
   {
-    formId: text("form_id").notNull().references(() => form.id),
+    formId: integer("form_id").notNull().references(() => form.id),
     formVersion: integer("form_version").notNull(),
   },
   (t) => [
