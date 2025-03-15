@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { FormModel } from "@/lib/models";
-import { FormDocument } from "@/lib/schemas";
+import { FormDocument, FormOptions } from "@/lib/schemas";
 import { initializePapr } from "@/lib/db";
+import { DocumentForInsert } from "papr";
 
 // GET /api/forms - Get all forms
 export async function GET() {
@@ -47,18 +48,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Create a new form with reference to the page
-    const newForm: FormDocument = {
-      _id: new ObjectId(),
+    const newForm: DocumentForInsert<FormDocument, FormOptions> = {
       title: data.title,
       description: data.description || "",
-      created_at: new Date(),
-      updated_at: new Date(),
-      active: true,
-      version: 1,
-      groups: [],
-      pages: [],
-      conditions: [],
-      form_validations: [],
     };
 
     const result = await FormModel.insertOne(newForm);

@@ -52,6 +52,7 @@ export const ElementSchema = schema(
   }
 );
 export type ElementDocument = (typeof ElementSchema)[0];
+export type ElementOptions = (typeof ElementSchema)[1];
 
 // Conditional logic schema
 const operators = [
@@ -149,6 +150,7 @@ export const FormSchema = schema(
   }
 );
 export type FormDocument = (typeof FormSchema)[0];
+export type FormOptions = (typeof FormSchema)[1];
 
 // Form submissions schema
 export const SubmissionSchema = schema(
@@ -171,3 +173,4 @@ export const SubmissionSchema = schema(
   }
 );
 export type SubmissionDocument = (typeof SubmissionSchema)[0];
+export type SubmissionOptions = (typeof SubmissionSchema)[1];

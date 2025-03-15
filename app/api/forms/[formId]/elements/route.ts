@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
-import { ElementDocument } from "@/lib/schemas";
+import { ElementDocument, ElementOptions } from "@/lib/schemas";
 import { FormModel, ElementModel, PageModel } from "@/lib/models";
 import { initializePapr } from "@/lib/db";
+import { DocumentForInsert } from "papr";
 
 // POST /api/forms/[formId]/elements - Add element to a page
 export async function POST(
@@ -69,8 +70,7 @@ export async function POST(
     }
 
     // Create new element
-    const newElement: ElementDocument = {
-      _id: new ObjectId(),
+    const newElement: DocumentForInsert<ElementDocument, ElementOptions> = {
       type: data.element.type,
       label: data.element.label,
       required: data.element.required || false,
