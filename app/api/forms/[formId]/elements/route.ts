@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { ElementDocument } from "@/lib/schemas";
 import { FormModel, ElementModel, PageModel } from "@/lib/models";
+import { initializePapr } from "@/lib/db";
 
 // POST /api/forms/[formId]/elements - Add element to a page
 export async function POST(
@@ -9,6 +10,8 @@ export async function POST(
   { params }: { params: Promise<{ formId: string }> }
 ) {
   try {
+    await initializePapr();
+
     const { formId: formIdParam } = await params;
     // Validate form ID
     if (!ObjectId.isValid(formIdParam)) {

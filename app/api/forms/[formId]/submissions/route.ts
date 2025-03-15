@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { FormModel, SubmissionModel } from "@/lib/models";
 import { validateFormSubmission } from "@/lib/validation";
+import { initializePapr } from "@/lib/db";
+import { SubmissionDocument } from "@/lib/schemas";
 
 // GET /api/forms/[formId]/submissions - Get all submissions for a form
 export async function GET(
@@ -9,6 +11,8 @@ export async function GET(
   { params }: { params: Promise<{ formId: string }> }
 ) {
   try {
+    await initializePapr();
+
     const { formId: formIdParam } = await params;
     // Validate form ID
     if (!ObjectId.isValid(formIdParam)) {
@@ -36,6 +40,8 @@ export async function POST(
   { params }: { params: Promise<{ formId: string }> }
 ) {
   try {
+    await initializePapr();
+
     const { formId: formIdParam } = await params;
     // Validate form ID
     if (!ObjectId.isValid(formIdParam)) {
@@ -69,7 +75,8 @@ export async function POST(
     }
 
     // Create submission
-    const newSubmission = {
+    const newSubmission: SubmissionDocument = {
+      _id: new ObjectId(),
       form_id: formId,
       created_at: new Date(),
       completed: submissionData.completed || true,

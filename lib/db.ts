@@ -11,63 +11,54 @@ const options = { appName: "your-app-name" };
 // Create the Papr instance
 const papr = new Papr();
 
-// Handle client instantiation differently based on environment
-let client: MongoClient;
+// In serverless environments, we need to handle connections differently
+let clientPromise: Promise<MongoClient>;
 
 if (process.env.NODE_ENV === "development") {
-  // In development, use a global variable to preserve across HMR
+  // In development, use a global variable to preserve connection across hot-reloads
   const globalWithMongo = global as typeof globalThis & {
-    _mongoClient?: MongoClient;
-    _paprInitialized?: boolean;
+    _mongoClientPromise?: Promise<MongoClient>;
   };
 
-  if (!globalWithMongo._mongoClient) {
-    globalWithMongo._mongoClient = new MongoClient(uri, options);
-    globalWithMongo._paprInitialized = false;
+  if (!globalWithMongo._mongoClientPromise) {
+    console.log("Creating new MongoDB client in development");
+    const client = new MongoClient(uri, options);
+    globalWithMongo._mongoClientPromise = client.connect();
   }
 
-  client = globalWithMongo._mongoClient;
-
-  // Only initialize Papr once
-  if (!globalWithMongo._paprInitialized) {
-    const initializePapr = async () => {
-      await client.connect();
-      papr.initialize(client.db("your-db-name"));
-      await papr.updateSchemas();
-      globalWithMongo._paprInitialized = true;
-    };
-
-    initializePapr().catch(console.error);
-  }
+  clientPromise = globalWithMongo._mongoClientPromise;
 } else {
-  // In production mode
-  client = new MongoClient(uri, options);
-
-  // Initialize Papr immediately for production
-  const initializePapr = async () => {
-    await client.connect();
-    papr.initialize(client.db("your-db-name"));
-    await papr.updateSchemas();
-  };
-
-  initializePapr().catch(console.error);
+  // In production, create a new client for each request
+  console.log("Creating new MongoDB client in production");
+  const client = new MongoClient(uri, options);
+  clientPromise = client.connect();
 }
 
-// Helper functions for connecting/disconnecting
-export async function connect() {
+// Track initialization state
+let isPaprInitialized = false;
+
+// Initialize Papr with the database
+export async function initializePapr() {
   try {
-    // A more modern way to check if we need to connect
-    await client.db().command({ ping: 1 });
+    const client = await clientPromise;
+    const db = client.db("your-db-name");
+
+    // Only initialize if not already initialized
+    if (!isPaprInitialized) {
+      console.log("Initializing Papr");
+      papr.initialize(db);
+      isPaprInitialized = true;
+    }
+
+    // Always update schemas
+    await papr.updateSchemas();
+    return { client, papr };
   } catch (error) {
-    console.log("error", error);
-    await client.connect();
+    console.error("Error initializing Papr:", error);
+    throw error;
   }
 }
 
-export async function disconnect() {
-  await client.close();
-}
-
-// Export both client and papr
-export { client, papr };
+// Export both client promise and papr
+export { clientPromise, papr };
 export default papr;

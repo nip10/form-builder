@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { papr } from "@/lib/db";
+import { initializePapr } from "@/lib/db";
 import {
   ElementModel,
   PageModel,
@@ -16,7 +16,8 @@ export async function POST(
   { params }: { params: Promise<{ formId: string }> }
 ) {
   try {
-    await papr.updateSchemas();
+    await initializePapr();
+
     const { formId } = await params;
     const { elementId, value } = await request.json();
 
@@ -61,6 +62,8 @@ export async function PUT(
   { params }: { params: Promise<{ formId: string }> }
 ) {
   try {
+    await initializePapr();
+
     const { formId } = await params;
     const { pageId, formData } = await request.json();
 
@@ -123,6 +126,8 @@ export async function PATCH(
   { params }: { params: Promise<{ formId: string }> }
 ) {
   try {
+    await initializePapr();
+
     const { formId } = await params;
     const { formData } = await request.json();
 

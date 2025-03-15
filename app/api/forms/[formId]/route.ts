@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { initializePapr } from "@/lib/db";
 import {
   FormModel,
   PageModel,
@@ -13,6 +14,8 @@ export async function GET(
   { params }: { params: Promise<{ formId: string }> }
 ) {
   try {
+    await initializePapr();
+
     const { formId } = await params;
 
     // Check if we should populate the form
@@ -40,7 +43,7 @@ export async function GET(
       });
 
       // Sort pages by order
-      const sortedPages = pages.sort(
+      const sortedPages = pages.toSorted(
         (a, b) => (a?.order || 0) - (b?.order || 0)
       );
 
@@ -51,7 +54,7 @@ export async function GET(
       });
 
       // Sort elements by order
-      const sortedElements = elements.sort(
+      const sortedElements = elements.toSorted(
         (a, b) => (a?.order || 0) - (b?.order || 0)
       );
 
@@ -70,7 +73,7 @@ export async function GET(
             )
           )
           .filter(Boolean)
-          .sort((a, b) => (a?.order || 0) - (b?.order || 0)),
+          .toSorted((a, b) => (a?.order || 0) - (b?.order || 0)),
       }));
 
       // Return the populated form
@@ -101,6 +104,9 @@ export async function PUT(
 ) {
   try {
     const { formId: formIdParam } = await params;
+
+    await initializePapr();
+
     // Validate ObjectId
     if (!ObjectId.isValid(formIdParam)) {
       return NextResponse.json({ error: "Invalid form ID" }, { status: 400 });
@@ -124,7 +130,7 @@ export async function PUT(
     data.updated_at = new Date();
 
     // Increment version
-    data.version = (existingForm.version || 1) + 1;
+    data.version = existingForm.version + 1;
 
     // Update form
     await FormModel.updateOne({ _id: formId }, { $set: data });
@@ -149,6 +155,9 @@ export async function DELETE(
 ) {
   try {
     const { formId: formIdParam } = await params;
+
+    await initializePapr();
+
     // Validate ObjectId
     if (!ObjectId.isValid(formIdParam)) {
       return NextResponse.json({ error: "Invalid form ID" }, { status: 400 });
