@@ -1,23 +1,17 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { ElementDocument } from "@/lib/schemas";
-import {
-  PageWithElements,
-  ValidationResult,
-  getElementProperty,
-  FormWithValidations,
-} from "@/types/form";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { ElementDocument } from "@repo/database/src/schema";
+import { Input } from "@repo/ui/components/ui/input";
+import { Label } from "@repo/ui/components/ui/label";
+import { Textarea } from "@repo/ui/components/ui/textarea";
+import { Checkbox } from "@repo/ui/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@repo/ui/components/ui/radio-group";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@repo/ui/components/ui/select";
 import {
   Card,
   CardContent,
@@ -25,8 +19,8 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+} from "@repo/ui/components/ui/card";
+import { Button } from "@repo/ui/components/ui/button";
 import { validatePageBasic } from "@/lib/client-validation";
 
 // Remove all the duplicate type definitions

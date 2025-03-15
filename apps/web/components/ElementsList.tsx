@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useFormBuilder } from "@/contexts/FormBuilderContext";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@repo/ui/components/ui/button";
+import { Card, CardContent } from "@repo/ui/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -9,20 +9,20 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@repo/ui/components/ui/dialog";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+} from "@repo/ui/components/ui/select";
+import { Input } from "@repo/ui/components/ui/input";
+import { Label } from "@repo/ui/components/ui/label";
+import { Switch } from "@repo/ui/components/ui/switch";
 import { PlusCircle, Edit, Trash2, MoveUp, MoveDown } from "lucide-react";
 import { toast } from "sonner";
-import { ElementDocument } from "@/lib/schemas";
+import { ElementDocument } from "@repo/database/src/schema";
 
 interface ElementsListProps {
   pageId: string;

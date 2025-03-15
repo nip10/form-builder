@@ -13,8 +13,7 @@ import {
   FormValidationDocument,
   ElementDocument,
   FormDocument,
-} from "@/lib/schemas";
-import { FormWithValidations, PageWithElements } from "@/types/form";
+} from "@repo/database/src/schema";
 
 interface FormBuilderContextType {
   form: FormWithValidations | null;

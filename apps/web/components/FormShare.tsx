@@ -5,11 +5,11 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+} from "@repo/ui/components/ui/card";
+import { Button } from "@repo/ui/components/ui/button";
+import { Input } from "@repo/ui/components/ui/input";
+import { Switch } from "@repo/ui/components/ui/switch";
+import { Label } from "@repo/ui/components/ui/label";
 import { Link, Copy, Share, QrCode, Check } from "lucide-react";
 import { toast } from "sonner";
 

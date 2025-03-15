@@ -5,9 +5,9 @@ import {
   ElementDocument,
   PageDocument,
   GroupDocument,
-} from "@/lib/schemas";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+} from "@repo/database/src/schema";
+import { Button } from "@repo/ui/components/ui/button";
+import { Card, CardContent } from "@repo/ui/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -16,21 +16,20 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from "@repo/ui/components/ui/dialog";
+import { Input } from "@repo/ui/components/ui/input";
+import { Label } from "@repo/ui/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+} from "@repo/ui/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@repo/ui/components/ui/radio-group";
 import { PlusCircle, Edit, Trash2, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { ObjectId } from "bson";
-import { FormWithValidations } from "@/types/form";
 
 /**
  * ConditionalLogicEditor Component

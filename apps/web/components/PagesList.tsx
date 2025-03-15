@@ -1,20 +1,19 @@
 import React, { useState } from "react";
 import { useFormBuilder } from "@/contexts/FormBuilderContext";
-import { PageWithElements, FormWithValidations } from "@/types/form";
-import { Button } from "@/components/ui/button";
+import { Button } from "@repo/ui/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@repo/ui/components/ui/card";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "@/components/ui/accordion";
+} from "@repo/ui/components/ui/accordion";
 import {
   Dialog,
   DialogContent,
@@ -23,10 +22,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+} from "@repo/ui/components/ui/dialog";
+import { Input } from "@repo/ui/components/ui/input";
+import { Label } from "@repo/ui/components/ui/label";
+import { Textarea } from "@repo/ui/components/ui/textarea";
 import { PlusCircle, Edit, Trash2, MoveUp, MoveDown } from "lucide-react";
 import { toast } from "sonner";
 import ElementsList from "./ElementsList";

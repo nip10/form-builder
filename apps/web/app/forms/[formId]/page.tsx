@@ -3,11 +3,11 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import FormRenderer from "@/components/FormRenderer";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@repo/ui/components/ui/card";
+import { Button } from "@repo/ui/components/ui/button";
 import { Loader2, AlertCircle, CheckCircle } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { FormWithValidations } from "@/types/form";
+import { Alert, AlertDescription, AlertTitle } from "@repo/ui/components/ui/alert";
+import { FormWithValidations } from "@repo/database/src/schema";
 
 const FormViewPage = () => {
   const router = useRouter();

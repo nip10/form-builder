@@ -2,15 +2,14 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   SubmissionDocument as BaseSubmissionDocument,
   ElementDocument,
-} from "@/lib/schemas";
-import { FormWithPages } from "@/types/form";
+} from "@repo/database/src/schema";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@repo/ui/components/ui/card";
 import {
   Table,
   TableBody,
@@ -18,16 +17,16 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@repo/ui/components/ui/table";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+} from "@repo/ui/components/ui/dialog";
+import { Button } from "@repo/ui/components/ui/button";
+import { Input } from "@repo/ui/components/ui/input";
 import { Download, Eye, Search, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 

@@ -13,7 +13,7 @@
     "check-types": "turbo check-types",
     "analyze": "turbo analyze",
     "bump-deps": "npx npm-check-updates --deep -u && pnpm install",
-    "bump-ui": "npx shadcn@latest add --all --overwrite -c packages/design-system",
+    "bump-ui": "npx shadcn@latest add --all --overwrite -c packages/ui",
     "migrate": "cd packages/database && npx prisma format && npx prisma generate && npx prisma db push",
     "clean": "git clean -xdf node_modules",
     "format": "prettier --write .",

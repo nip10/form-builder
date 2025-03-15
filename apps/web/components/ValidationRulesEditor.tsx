@@ -1,15 +1,14 @@
 import { useFormBuilder } from "@/contexts/FormBuilderContext";
-import { FormValidationDocument, ElementDocument } from "@/lib/schemas";
-import { FormWithValidations } from "@/types/form";
+import { FormValidationDocument, ElementDocument } from "@repo/database/src/schema";
 import { ObjectId } from "bson";
-import { Button } from "@/components/ui/button";
+import { Button } from "@repo/ui/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@repo/ui/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -18,18 +17,18 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+} from "@repo/ui/components/ui/dialog";
+import { Input } from "@repo/ui/components/ui/input";
+import { Label } from "@repo/ui/components/ui/label";
+import { Textarea } from "@repo/ui/components/ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
+} from "@repo/ui/components/ui/select";
+import { Checkbox } from "@repo/ui/components/ui/checkbox";
 import { PlusCircle, Edit, Trash2, Code, Info } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -37,7 +36,7 @@ import {
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
+} from "@repo/ui/components/ui/tooltip";
 import { useState } from "react";
 
 // Helper to convert string IDs to ObjectIds
