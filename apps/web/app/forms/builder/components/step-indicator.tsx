@@ -1,37 +1,42 @@
-"use client"
+"use client";
 
-import { Check, CircleDashed } from "lucide-react"
-import type { FormBuilderData } from "./form-builder"
+import { Check, CircleDashed } from "lucide-react";
+import type { FormBuilderData } from "./form-builder";
 
 interface StepIndicatorProps {
-  steps: { id: string; label: string }[]
-  currentStep: string
-  goToStep: (stepId: string) => void
-  formData: FormBuilderData
+  steps: { id: string; label: string }[];
+  currentStep: string;
+  goToStep: (stepId: string) => void;
+  formData: FormBuilderData;
 }
 
-export default function StepIndicator({ steps, currentStep, goToStep, formData }: StepIndicatorProps) {
+export default function StepIndicator({
+  steps,
+  currentStep,
+  goToStep,
+  formData,
+}: StepIndicatorProps) {
   // Check if a step is complete based on form data
   const isStepComplete = (stepId: string): boolean => {
     switch (stepId) {
       case "form":
-        return !!formData.form.title
+        return !!formData.form.title;
       case "groups":
-        return formData.groups.length > 0
+        return formData.groups.length > 0;
       case "pages":
-        return formData.pages.length > 0
+        return formData.pages.length > 0;
       case "elements":
-        return formData.elements.length > 0
+        return formData.elements.length > 0;
       default:
-        return false
+        return false;
     }
-  }
+  };
 
   return (
     <div className="flex justify-between">
       {steps.map((step, index) => {
-        const isActive = step.id === currentStep
-        const isComplete = isStepComplete(step.id)
+        const isActive = step.id === currentStep;
+        const isComplete = isStepComplete(step.id);
 
         return (
           <div key={step.id} className="flex flex-col items-center">
@@ -64,9 +69,8 @@ export default function StepIndicator({ steps, currentStep, goToStep, formData }
               />
             )}
           </div>
-        )
+        );
       })}
     </div>
-  )
+  );
 }
-

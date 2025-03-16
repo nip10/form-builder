@@ -163,6 +163,7 @@ Forms can be forked to create derivatives:
 Two levels of validation are supported:
 
 1. **Element-level validation**:
+
    - Stored in the `validations` field of each element instance
    - Uses JSON Logic format for flexible validation rules
    - Can vary for the same element template in different contexts
@@ -200,8 +201,12 @@ export const elementTemplate = createTable("element_template", {
 // Instance tables
 export const elementInstance = createTable("element_instance", {
   id: text("id").primaryKey().notNull(),
-  templateId: text("template_id").notNull().references(() => elementTemplate.id),
-  pageInstanceId: text("page_instance_id").notNull().references(() => pageInstance.id),
+  templateId: text("template_id")
+    .notNull()
+    .references(() => elementTemplate.id),
+  pageInstanceId: text("page_instance_id")
+    .notNull()
+    .references(() => pageInstance.id),
   orderIndex: integer("order_index").notNull(),
   required: boolean("required").notNull().default(false),
   labelOverride: text("label_override"),
@@ -216,7 +221,7 @@ export const form = createTable("form", {
   id: text("id").primaryKey().notNull(),
   title: text("title").notNull(),
   description: text("description"),
-  status: formStatusEnum("status").notNull().default('draft'),
+  status: formStatusEnum("status").notNull().default("draft"),
   currentVersion: integer("current_version").notNull().default(1),
   forkedFromId: text("forked_from_id").references(() => form.id),
   forkDate: timestamp("fork_date"),
@@ -229,7 +234,9 @@ export const form = createTable("form", {
 // Validation and conditional logic
 export const formValidation = createTable("form_validation", {
   id: text("id").primaryKey().notNull(),
-  formId: text("form_id").notNull().references(() => form.id),
+  formId: text("form_id")
+    .notNull()
+    .references(() => form.id),
   name: text("name").notNull(),
   rule: jsonb("rule").notNull(),
   errorMessage: text("error_message").notNull(),
@@ -240,7 +247,9 @@ export const formValidation = createTable("form_validation", {
 
 export const condition = createTable("condition", {
   id: text("id").primaryKey().notNull(),
-  formId: text("form_id").notNull().references(() => form.id),
+  formId: text("form_id")
+    .notNull()
+    .references(() => form.id),
   name: text("name"),
   rule: jsonb("rule").notNull(),
   action: conditionActionEnum("action").notNull(),
@@ -269,14 +278,14 @@ export const condition = createTable("condition", {
     {
       "type": "jsonLogic",
       "rule": {
-        ">": [{"var": ""}, 0]
+        ">": [{ "var": "" }, 0]
       },
       "error_message": "Value must be greater than zero"
     },
     {
       "type": "jsonLogic",
       "rule": {
-        "in": [{"var": ""}, ["option1", "option2", "option3"]]
+        "in": [{ "var": "" }, ["option1", "option2", "option3"]]
       },
       "error_message": "Please select a valid option"
     }
@@ -291,11 +300,7 @@ export const condition = createTable("condition", {
   "name": "Total equals 100%",
   "rule": {
     "==": [
-      {"+": [
-        {"var": "element_123"},
-        {"var": "element_456"},
-        {"var": "element_789"}
-      ]},
+      { "+": [{ "var": "element_123" }, { "var": "element_456" }, { "var": "element_789" }] },
       100
     ]
   },
@@ -310,7 +315,7 @@ export const condition = createTable("condition", {
 {
   "name": "Show address fields if shipping requested",
   "rule": {
-    "==": [{"var": "element_123"}, "yes"]
+    "==": [{ "var": "element_123" }, "yes"]
   },
   "action": "show",
   "targetType": "group",
@@ -359,43 +364,43 @@ export const condition = createTable("condition", {
 ```typescript
 // Create a number input element template
 const emailTemplate = await db.insert(elementTemplate).values({
-  id: 'elem_email',
-  type: 'email',
-  label: 'Email Address',
-  properties: {}
+  id: "elem_email",
+  type: "email",
+  label: "Email Address",
+  properties: {},
 });
 
 // Use in Page 1 (Contact Info) with basic validation
 await db.insert(elementInstance).values({
-  id: 'elem_inst_1',
-  templateId: 'elem_email',
-  pageInstanceId: 'page_inst_contact',
+  id: "elem_inst_1",
+  templateId: "elem_email",
+  pageInstanceId: "page_inst_contact",
   orderIndex: 1,
   required: true,
   validations: [
     {
-      type: 'jsonLogic',
-      rule: { "in": [{ "var": "" }, [".com", ".org", ".edu"]] },
-      error_message: 'Please use a standard email domain'
-    }
-  ]
+      type: "jsonLogic",
+      rule: { in: [{ var: "" }, [".com", ".org", ".edu"]] },
+      error_message: "Please use a standard email domain",
+    },
+  ],
 });
 
 // Use in Page 2 (Work Info) with stricter validation
 await db.insert(elementInstance).values({
-  id: 'elem_inst_2',
-  templateId: 'elem_email',
-  pageInstanceId: 'page_inst_work',
+  id: "elem_inst_2",
+  templateId: "elem_email",
+  pageInstanceId: "page_inst_work",
   orderIndex: 1,
   required: true,
-  labelOverride: 'Work Email Address',
+  labelOverride: "Work Email Address",
   validations: [
     {
-      type: 'regex',
+      type: "regex",
       rule: "^[a-zA-Z0-9._%+-]+@company\\.com$",
-      error_message: 'Please use your company email address'
-    }
-  ]
+      error_message: "Please use your company email address",
+    },
+  ],
 });
 ```
 

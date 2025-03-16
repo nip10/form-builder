@@ -5,7 +5,7 @@ import {
   ElementInstanceTable,
   ElementTemplateTable,
   PageInstanceTable,
-  ConditionTable
+  ConditionTable,
 } from "@repo/database/src/schema";
 import { eq, inArray } from "drizzle-orm";
 import { validateElement } from "@/lib/validation";
@@ -32,18 +32,18 @@ const pageIdSchema = z.coerce.number().int().positive();
 // Zod schema for element validation request
 const elementValidationSchema = z.object({
   elementId: elementIdSchema,
-  value: z.any()
+  value: z.any(),
 });
 
 // Zod schema for page validation request
 const pageValidationSchema = z.object({
   pageId: pageIdSchema,
-  formData: z.record(z.any())
+  formData: z.record(z.any()),
 });
 
 // Zod schema for condition evaluation request
 const conditionEvaluationSchema = z.object({
-  formData: z.record(z.any())
+  formData: z.record(z.any()),
 });
 
 // POST /api/forms/[formId]/validate - Validate a single element
@@ -66,9 +66,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json(
         {
           error: "Invalid validation request",
-          details: validationResult.error.format()
+          details: validationResult.error.format(),
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -76,26 +76,20 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     // Find the element instance
     const elementInstance = await db.query.ElementInstanceTable.findFirst({
-      where: eq(ElementInstanceTable.id, elementId)
+      where: eq(ElementInstanceTable.id, elementId),
     });
 
     if (!elementInstance) {
-      return NextResponse.json(
-        { error: "Element instance not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Element instance not found" }, { status: 404 });
     }
 
     // Find the element template
     const elementTemplate = await db.query.ElementTemplateTable.findFirst({
-      where: eq(ElementTemplateTable.id, elementInstance.templateId)
+      where: eq(ElementTemplateTable.id, elementInstance.templateId),
     });
 
     if (!elementTemplate) {
-      return NextResponse.json(
-        { error: "Element template not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Element template not found" }, { status: 404 });
     }
 
     // Combine template and instance for validation
@@ -130,7 +124,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     console.error("Error validating element:", error);
     return NextResponse.json(
       { error: error.message || "Failed to validate element" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -155,9 +149,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json(
         {
           error: "Invalid page validation request",
-          details: validationResult.error.format()
+          details: validationResult.error.format(),
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -165,7 +159,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     // Find the page
     const page = await db.query.PageInstanceTable.findFirst({
-      where: eq(PageInstanceTable.id, pageId)
+      where: eq(PageInstanceTable.id, pageId),
     });
 
     if (!page) {
@@ -174,23 +168,19 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     // Find all element instances for this page
     const elementInstances = await db.query.ElementInstanceTable.findMany({
-      where: eq(ElementInstanceTable.pageInstanceId, pageId)
+      where: eq(ElementInstanceTable.pageInstanceId, pageId),
     });
 
     // Get all template IDs
-    const templateIds = elementInstances.map(instance => instance.templateId);
+    const templateIds = elementInstances.map((instance) => instance.templateId);
 
     // Find all element templates
     const elementTemplates = await db.query.ElementTemplateTable.findMany({
-      where: templateIds.length > 0 ?
-        inArray(ElementTemplateTable.id, templateIds) :
-        undefined
+      where: templateIds.length > 0 ? inArray(ElementTemplateTable.id, templateIds) : undefined,
     });
 
     // Create a map of templates by ID for easy lookup
-    const templatesMap = new Map(
-      elementTemplates.map(template => [template.id, template])
-    );
+    const templatesMap = new Map(elementTemplates.map((template) => [template.id, template]));
 
     // Validate each element
     const result = {
@@ -238,7 +228,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             elementId: error.elementId ? error.elementId.toString() : undefined,
             message: error.message,
             rule: error.rule,
-          }))
+          })),
         );
       }
     }
@@ -248,7 +238,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     console.error("Error validating page:", error);
     return NextResponse.json(
       { error: error.message || "Failed to validate page" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -260,10 +250,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const formIdResult = formIdSchema.safeParse(params.formId);
 
     if (!formIdResult.success) {
-      return NextResponse.json(
-        { error: "Invalid form ID format" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Invalid form ID format" }, { status: 400 });
     }
 
     const formId = formIdResult.data;
@@ -276,9 +263,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json(
         {
           error: "Invalid condition evaluation request",
-          details: validationResult.error.format()
+          details: validationResult.error.format(),
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -292,7 +279,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     // Get all conditions for this form
     const conditions = await db.query.ConditionTable.findMany({
-      where: eq(ConditionTable.formId, formId)
+      where: eq(ConditionTable.formId, formId),
     });
 
     // Get all groups for this form
@@ -331,21 +318,19 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
           const isRuleMet = jsonLogic.apply(condition.rule as any, formData);
 
           // Determine target visibility based on condition action and rule result
-          const shouldBeVisible = condition.action === 'show' ? isRuleMet : !isRuleMet;
+          const shouldBeVisible = condition.action === "show" ? isRuleMet : !isRuleMet;
 
           // Update visibility based on target type
           const targetKey = `${condition.targetType.toLowerCase()}_${condition.targetId}`;
           visibility[targetKey] = shouldBeVisible;
 
           // If hiding a group, also hide its pages and elements
-          if (condition.targetType === 'group' && !shouldBeVisible) {
+          if (condition.targetType === "group" && !shouldBeVisible) {
             const groupId = condition.targetId;
 
             // Find pages in this group
-            const groupPages = pages.filter(page => {
-              const pageGroup = groups.find(g =>
-                g.pages?.some(p => p.id === page.id)
-              );
+            const groupPages = pages.filter((page) => {
+              const pageGroup = groups.find((g) => g.pages?.some((p) => p.id === page.id));
               return pageGroup?.id === groupId;
             });
 
@@ -361,9 +346,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
           }
 
           // If hiding a page, also hide its elements
-          if (condition.targetType === 'page' && !shouldBeVisible) {
+          if (condition.targetType === "page" && !shouldBeVisible) {
             const pageId = condition.targetId;
-            const page = pages.find(p => p.id === pageId);
+            const page = pages.find((p) => p.id === pageId);
 
             if (page) {
               // Hide all elements in this page
@@ -384,7 +369,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     console.error("Error evaluating conditions:", error);
     return NextResponse.json(
       { error: error.message || "Failed to evaluate conditions" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

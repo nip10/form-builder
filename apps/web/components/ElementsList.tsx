@@ -40,9 +40,9 @@ const ElementsList: React.FC<ElementsListProps> = ({ pageId, elements }) => {
 
   const [newElementDialogOpen, setNewElementDialogOpen] = useState(false);
   const [editElementDialogOpen, setEditElementDialogOpen] = useState(false);
-  const [currentElement, setCurrentElement] = useState<(ElementInstance & { template?: ElementTemplate }) | null>(
-    null
-  );
+  const [currentElement, setCurrentElement] = useState<
+    (ElementInstance & { template?: ElementTemplate }) | null
+  >(null);
 
   // Form state for new/edit element
   const [elementType, setElementType] = useState<string>("text_input");
@@ -52,9 +52,7 @@ const ElementsList: React.FC<ElementsListProps> = ({ pageId, elements }) => {
 
   // Sort elements by order
   const sortedElements = [...elements].sort(
-    (a, b) =>
-      (a.orderIndex ?? Number.MAX_SAFE_INTEGER) -
-      (b.orderIndex ?? Number.MAX_SAFE_INTEGER)
+    (a, b) => (a.orderIndex ?? Number.MAX_SAFE_INTEGER) - (b.orderIndex ?? Number.MAX_SAFE_INTEGER),
   );
 
   const resetElementForm = () => {
@@ -96,19 +94,15 @@ const ElementsList: React.FC<ElementsListProps> = ({ pageId, elements }) => {
       return;
     }
 
-    const success = await updateElement(
-      pageId,
-      currentElement.id,
-      {
-        type: elementType,
-        label: elementLabel,
-        required: elementRequired,
-        properties: {
-          ...((currentElement.template?.properties as ElementProperties) || {}),
-          placeholder: elementPlaceholder,
-        },
-      } as any
-    );
+    const success = await updateElement(pageId, currentElement.id, {
+      type: elementType,
+      label: elementLabel,
+      required: elementRequired,
+      properties: {
+        ...((currentElement.template?.properties as ElementProperties) || {}),
+        placeholder: elementPlaceholder,
+      },
+    } as any);
 
     if (success) {
       toast.success("Element updated successfully");
@@ -121,11 +115,7 @@ const ElementsList: React.FC<ElementsListProps> = ({ pageId, elements }) => {
   };
 
   const handleDeleteElement = async (elementId: number) => {
-    if (
-      confirm(
-        "Are you sure you want to delete this element? This action cannot be undone."
-      )
-    ) {
+    if (confirm("Are you sure you want to delete this element? This action cannot be undone.")) {
       const success = await deleteElement(pageId, elementId);
 
       if (success) {
@@ -140,25 +130,17 @@ const ElementsList: React.FC<ElementsListProps> = ({ pageId, elements }) => {
     if ((element.orderIndex ?? 0) <= 1) return;
 
     const elementToSwap = sortedElements.find(
-      (e) => (e.orderIndex ?? 0) === (element.orderIndex ?? 0) - 1
+      (e) => (e.orderIndex ?? 0) === (element.orderIndex ?? 0) - 1,
     );
     if (!elementToSwap) return;
 
-    const success1 = await updateElement(
-      pageId,
-      element.id,
-      {
-        orderIndex: (element.orderIndex ?? 0) - 1,
-      } as any
-    );
+    const success1 = await updateElement(pageId, element.id, {
+      orderIndex: (element.orderIndex ?? 0) - 1,
+    } as any);
 
-    const success2 = await updateElement(
-      pageId,
-      elementToSwap.id,
-      {
-        orderIndex: (elementToSwap.orderIndex ?? 0) + 1,
-      } as any
-    );
+    const success2 = await updateElement(pageId, elementToSwap.id, {
+      orderIndex: (elementToSwap.orderIndex ?? 0) + 1,
+    } as any);
 
     if (success1 && success2) {
       toast.success("Element moved up successfully");
@@ -167,29 +149,23 @@ const ElementsList: React.FC<ElementsListProps> = ({ pageId, elements }) => {
     }
   };
 
-  const handleMoveElementDown = async (element: ElementInstance & { template?: ElementTemplate }) => {
+  const handleMoveElementDown = async (
+    element: ElementInstance & { template?: ElementTemplate },
+  ) => {
     if ((element.orderIndex ?? 0) >= sortedElements.length) return;
 
     const elementToSwap = sortedElements.find(
-      (e) => (e.orderIndex ?? 0) === (element.orderIndex ?? 0) + 1
+      (e) => (e.orderIndex ?? 0) === (element.orderIndex ?? 0) + 1,
     );
     if (!elementToSwap) return;
 
-    const success1 = await updateElement(
-      pageId,
-      element.id,
-      {
-        orderIndex: (element.orderIndex ?? 0) + 1,
-      } as any
-    );
+    const success1 = await updateElement(pageId, element.id, {
+      orderIndex: (element.orderIndex ?? 0) + 1,
+    } as any);
 
-    const success2 = await updateElement(
-      pageId,
-      elementToSwap.id,
-      {
-        orderIndex: (elementToSwap.orderIndex ?? 0) - 1,
-      } as any
-    );
+    const success2 = await updateElement(pageId, elementToSwap.id, {
+      orderIndex: (elementToSwap.orderIndex ?? 0) - 1,
+    } as any);
 
     if (success1 && success2) {
       toast.success("Element moved down successfully");
@@ -249,16 +225,11 @@ const ElementsList: React.FC<ElementsListProps> = ({ pageId, elements }) => {
         </Button>
       </div>
 
-      <Dialog
-        open={newElementDialogOpen}
-        onOpenChange={setNewElementDialogOpen}
-      >
+      <Dialog open={newElementDialogOpen} onOpenChange={setNewElementDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Add New Element</DialogTitle>
-            <DialogDescription>
-              Add a new element to your form
-            </DialogDescription>
+            <DialogDescription>Add a new element to your form</DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
@@ -302,13 +273,9 @@ const ElementsList: React.FC<ElementsListProps> = ({ pageId, elements }) => {
               <Label htmlFor="element-required">Required field</Label>
             </div>
 
-            {["text_input", "number_input", "email", "textarea"].includes(
-              elementType
-            ) && (
+            {["text_input", "number_input", "email", "textarea"].includes(elementType) && (
               <div className="grid gap-2">
-                <Label htmlFor="element-placeholder">
-                  Placeholder Text (Optional)
-                </Label>
+                <Label htmlFor="element-placeholder">Placeholder Text (Optional)</Label>
                 <Input
                   id="element-placeholder"
                   value={elementPlaceholder}
@@ -320,10 +287,7 @@ const ElementsList: React.FC<ElementsListProps> = ({ pageId, elements }) => {
           </div>
 
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setNewElementDialogOpen(false)}
-            >
+            <Button variant="outline" onClick={() => setNewElementDialogOpen(false)}>
               Cancel
             </Button>
             <Button onClick={handleAddElement}>Add Element</Button>
@@ -331,10 +295,7 @@ const ElementsList: React.FC<ElementsListProps> = ({ pageId, elements }) => {
         </DialogContent>
       </Dialog>
 
-      <Dialog
-        open={editElementDialogOpen}
-        onOpenChange={setEditElementDialogOpen}
-      >
+      <Dialog open={editElementDialogOpen} onOpenChange={setEditElementDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Element</DialogTitle>
@@ -382,13 +343,9 @@ const ElementsList: React.FC<ElementsListProps> = ({ pageId, elements }) => {
               <Label htmlFor="edit-element-required">Required field</Label>
             </div>
 
-            {["text_input", "number_input", "email", "textarea"].includes(
-              elementType
-            ) && (
+            {["text_input", "number_input", "email", "textarea"].includes(elementType) && (
               <div className="grid gap-2">
-                <Label htmlFor="edit-element-placeholder">
-                  Placeholder Text (Optional)
-                </Label>
+                <Label htmlFor="edit-element-placeholder">Placeholder Text (Optional)</Label>
                 <Input
                   id="edit-element-placeholder"
                   value={elementPlaceholder}
@@ -400,10 +357,7 @@ const ElementsList: React.FC<ElementsListProps> = ({ pageId, elements }) => {
           </div>
 
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setEditElementDialogOpen(false)}
-            >
+            <Button variant="outline" onClick={() => setEditElementDialogOpen(false)}>
               Cancel
             </Button>
             <Button onClick={handleEditElement}>Save Changes</Button>
@@ -471,9 +425,7 @@ const ElementsList: React.FC<ElementsListProps> = ({ pageId, elements }) => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() =>
-                        handleDeleteElement(element.id)
-                      }
+                      onClick={() => handleDeleteElement(element.id)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

@@ -88,7 +88,7 @@ export default function HomePage() {
         throw new Error("Failed to create form");
       }
 
-      const data = await response.json() as { form: Form };
+      const data = (await response.json()) as { form: Form };
 
       toast.success("Form created successfully");
 
@@ -109,11 +109,7 @@ export default function HomePage() {
   };
 
   const handleDeleteForm = async (formId: number) => {
-    if (
-      confirm(
-        "Are you sure you want to delete this form? This action cannot be undone."
-      )
-    ) {
+    if (confirm("Are you sure you want to delete this form? This action cannot be undone.")) {
       try {
         const response = await fetch(`/api/forms/${formId}`, {
           method: "DELETE",
@@ -154,9 +150,7 @@ export default function HomePage() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Create New Form</DialogTitle>
-              <DialogDescription>
-                Enter a title for your new form
-              </DialogDescription>
+              <DialogDescription>Enter a title for your new form</DialogDescription>
             </DialogHeader>
 
             <div className="grid gap-4 py-4">
@@ -176,9 +170,7 @@ export default function HomePage() {
                 Cancel
               </Button>
               <Button onClick={handleCreateForm} disabled={isCreatingForm}>
-                {isCreatingForm && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
+                {isCreatingForm && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Create Form
               </Button>
             </DialogFooter>
@@ -191,9 +183,7 @@ export default function HomePage() {
           <Card>
             <CardHeader>
               <CardTitle>Your Forms</CardTitle>
-              <CardDescription>
-                Select a form to edit or create a new one
-              </CardDescription>
+              <CardDescription>Select a form to edit or create a new one</CardDescription>
             </CardHeader>
             <CardContent>
               {loading ? (
@@ -203,11 +193,7 @@ export default function HomePage() {
               ) : error ? (
                 <div className="text-center p-4 text-red-500">
                   <p>{error}</p>
-                  <Button
-                    variant="outline"
-                    className="mt-2"
-                    onClick={fetchForms}
-                  >
+                  <Button variant="outline" className="mt-2" onClick={fetchForms}>
                     Try Again
                   </Button>
                 </div>
@@ -228,8 +214,7 @@ export default function HomePage() {
                       <div>
                         <h3 className="font-medium">{form.title}</h3>
                         <p className="text-xs text-gray-500">
-                          Last updated:{" "}
-                          {new Date(form.updatedAt).toLocaleDateString()}
+                          Last updated: {new Date(form.updatedAt).toLocaleDateString()}
                         </p>
                       </div>
                       <Button
@@ -258,9 +243,7 @@ export default function HomePage() {
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>Create New Form</DialogTitle>
-                    <DialogDescription>
-                      Enter a title for your new form
-                    </DialogDescription>
+                    <DialogDescription>Enter a title for your new form</DialogDescription>
                   </DialogHeader>
 
                   <div className="grid gap-4 py-4">
@@ -276,19 +259,11 @@ export default function HomePage() {
                   </div>
 
                   <DialogFooter>
-                    <Button
-                      variant="outline"
-                      onClick={() => setNewFormTitle("")}
-                    >
+                    <Button variant="outline" onClick={() => setNewFormTitle("")}>
                       Cancel
                     </Button>
-                    <Button
-                      onClick={handleCreateForm}
-                      disabled={isCreatingForm}
-                    >
-                      {isCreatingForm && (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      )}
+                    <Button onClick={handleCreateForm} disabled={isCreatingForm}>
+                      {isCreatingForm && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       Create Form
                     </Button>
                   </DialogFooter>
@@ -307,12 +282,9 @@ export default function HomePage() {
             <Card>
               <CardContent className="pt-6">
                 <div className="text-center p-12">
-                  <h2 className="text-xl font-semibold mb-2">
-                    No Form Selected
-                  </h2>
+                  <h2 className="text-xl font-semibold mb-2">No Form Selected</h2>
                   <p className="text-gray-500 mb-6">
-                    Select a form from the sidebar or create a new one to get
-                    started.
+                    Select a form from the sidebar or create a new one to get started.
                   </p>
 
                   <Dialog>
@@ -325,9 +297,7 @@ export default function HomePage() {
                     <DialogContent>
                       <DialogHeader>
                         <DialogTitle>Create New Form</DialogTitle>
-                        <DialogDescription>
-                          Enter a title for your new form
-                        </DialogDescription>
+                        <DialogDescription>Enter a title for your new form</DialogDescription>
                       </DialogHeader>
 
                       <div className="grid gap-4 py-4">
@@ -343,19 +313,11 @@ export default function HomePage() {
                       </div>
 
                       <DialogFooter>
-                        <Button
-                          variant="outline"
-                          onClick={() => setNewFormTitle("")}
-                        >
+                        <Button variant="outline" onClick={() => setNewFormTitle("")}>
                           Cancel
                         </Button>
-                        <Button
-                          onClick={handleCreateForm}
-                          disabled={isCreatingForm}
-                        >
-                          {isCreatingForm && (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          )}
+                        <Button onClick={handleCreateForm} disabled={isCreatingForm}>
+                          {isCreatingForm && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                           Create Form
                         </Button>
                       </DialogFooter>

@@ -6,7 +6,7 @@ import {
   ElementTemplate,
   PageInstance,
   GroupInstance,
-  Form
+  Form,
 } from "@repo/database/src/schema";
 import { Button } from "@repo/ui/components/ui/button";
 import { Card, CardContent } from "@repo/ui/components/ui/card";
@@ -94,16 +94,14 @@ const getSourceElements = (elements: ElementWithTemplate[]): ElementWithTemplate
     "date",
   ];
 
-  return elements.filter((element) =>
-    sourceTypes.includes(element.template?.type as string)
-  );
+  return elements.filter((element) => sourceTypes.includes(element.template?.type as string));
 };
 
 // Helper to get all potential targets (pages, groups, elements) for conditions
 const getTargetElements = (
   pages: PageInstance[],
   groups: GroupInstance[],
-  elements: ElementWithTemplate[]
+  elements: ElementWithTemplate[],
 ): { id: string; type: "page" | "element" | "group"; label: string }[] => {
   const targets: {
     id: string;
@@ -161,13 +159,11 @@ const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
   const [pages, setPages] = useState<PageInstance[]>(loadedPages);
   const [groups, setGroups] = useState<GroupInstance[]>(loadedGroups);
   const [elements, setElements] = useState<ElementInstance[]>(loadedElements);
-  const [conditions, setConditions] =
-    useState<Condition[]>(loadedConditions);
+  const [conditions, setConditions] = useState<Condition[]>(loadedConditions);
 
   const [newConditionDialogOpen, setNewConditionDialogOpen] = useState(false);
   const [editConditionDialogOpen, setEditConditionDialogOpen] = useState(false);
-  const [currentCondition, setCurrentCondition] =
-    useState<Condition | null>(null);
+  const [currentCondition, setCurrentCondition] = useState<Condition | null>(null);
 
   // Form state for new/edit condition
   const [sourceElementId, setSourceElementId] = useState("");
@@ -177,9 +173,7 @@ const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
   const [conditionValue, setConditionValue] = useState("");
   const [action, setAction] = useState<"show" | "hide">("show");
   const [targetId, setTargetId] = useState("");
-  const [targetType, setTargetType] = useState<"page" | "element" | "group">(
-    "page"
-  );
+  const [targetType, setTargetType] = useState<"page" | "element" | "group">("page");
 
   // Load data if not provided as props
   useEffect(() => {
@@ -194,13 +188,7 @@ const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
       // If conditions are available in the form prop, use those
       setConditions(form.conditions as unknown as Condition[]);
     }
-  }, [
-    loadedPages,
-    loadedGroups,
-    loadedElements,
-    loadedConditions,
-    form.conditions,
-  ]);
+  }, [loadedPages, loadedGroups, loadedElements, loadedConditions, form.conditions]);
 
   const sourceElements = getSourceElements(elements as ElementWithTemplate[]);
   const targetElements = getTargetElements(pages, groups, elements as ElementWithTemplate[]);
@@ -269,7 +257,7 @@ const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
 
     const success = await updateCondition(
       parseInt(currentCondition.id.toString(), 10),
-      fullUpdates as any // Use type assertion since we know the API accepts this
+      fullUpdates as any, // Use type assertion since we know the API accepts this
     );
 
     if (success) {
@@ -290,7 +278,7 @@ const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
               targetId: parseInt(targetId, 10),
               sourceElementId: parseInt(sourceElementId, 10),
             }
-          : c
+          : c,
       );
       setConditions(updatedConditions);
     } else {
@@ -299,20 +287,14 @@ const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
   };
 
   const handleDeleteCondition = async (conditionId: string) => {
-    if (
-      confirm(
-        "Are you sure you want to delete this condition? This action cannot be undone."
-      )
-    ) {
+    if (confirm("Are you sure you want to delete this condition? This action cannot be undone.")) {
       const success = await deleteCondition(parseInt(conditionId, 10));
 
       if (success) {
         toast.success("Condition deleted successfully");
 
         // Update local state
-        setConditions(
-          conditions.filter((c) => c.id?.toString() !== conditionId)
-        );
+        setConditions(conditions.filter((c) => c.id?.toString() !== conditionId));
       } else {
         toast.error("Failed to delete condition");
       }
@@ -328,12 +310,7 @@ const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
     }
     if (condition.rule) {
       setOperator(
-        condition.rule as
-          | "equals"
-          | "not_equals"
-          | "contains"
-          | "greater_than"
-          | "less_than"
+        condition.rule as "equals" | "not_equals" | "contains" | "greater_than" | "less_than",
       );
     }
     setConditionValue(condition.name || "");
@@ -351,7 +328,7 @@ const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
 
   // Helper to find element by ID
   const getElementById = (elementId: string): ElementWithTemplate | null => {
-    return elements.find((e) => e.id?.toString() === elementId) as ElementWithTemplate || null;
+    return (elements.find((e) => e.id?.toString() === elementId) as ElementWithTemplate) || null;
   };
 
   // Helper to get friendly names for condition display
@@ -364,21 +341,14 @@ const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
     let targetDescription = "Unknown target";
 
     if (condition.targetType === "page" && condition.targetId) {
-      const page = pages.find(
-        (p) => p.id?.toString() === condition.targetId?.toString()
-      );
-      if (page)
-        targetDescription = `Page: ${(page as any).titleOverride || "Untitled"}`;
+      const page = pages.find((p) => p.id?.toString() === condition.targetId?.toString());
+      if (page) targetDescription = `Page: ${(page as any).titleOverride || "Untitled"}`;
     } else if (condition.targetType === "group" && condition.targetId) {
-      const group = groups.find(
-        (g) => g.id?.toString() === condition.targetId?.toString()
-      );
-      if (group)
-        targetDescription = `Group: ${(group as any).titleOverride || "Untitled"}`;
+      const group = groups.find((g) => g.id?.toString() === condition.targetId?.toString());
+      if (group) targetDescription = `Group: ${(group as any).titleOverride || "Untitled"}`;
     } else if (condition.targetType === "element" && condition.targetId) {
       const element = getElementById(condition.targetId.toString());
-      if (element)
-        targetDescription = `Element: ${element.template?.label || "Untitled"}`;
+      if (element) targetDescription = `Element: ${element.template?.label || "Untitled"}`;
     }
 
     const operatorMap: Record<string, string> = {
@@ -389,14 +359,14 @@ const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
       less_than: "is less than",
     };
 
-    const operatorText = condition.rule
-      ? operatorMap[condition.rule as string]
-      : "equals";
+    const operatorText = condition.rule ? operatorMap[condition.rule as string] : "equals";
     const actionText = condition.action === "show" ? "show" : "hide";
 
     return (
       <div className="flex flex-wrap items-center gap-1">
-        <span className="font-medium">{sourceElement.labelOverride || (sourceElement.template?.label || "Unknown")}</span>
+        <span className="font-medium">
+          {sourceElement.labelOverride || sourceElement.template?.label || "Unknown"}
+        </span>
         <span>{operatorText}</span>
         <span className="font-medium">&apos;{condition.name}&apos;</span>
         <ArrowRight className="h-3 w-3 mx-1" />
@@ -411,10 +381,7 @@ const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold">Conditional Logic</h2>
 
-        <Dialog
-          open={newConditionDialogOpen}
-          onOpenChange={setNewConditionDialogOpen}
-        >
+        <Dialog open={newConditionDialogOpen} onOpenChange={setNewConditionDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <PlusCircle className="mr-2 h-4 w-4" />
@@ -432,10 +399,7 @@ const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
                 <Label htmlFor="source-element">If this field</Label>
-                <Select
-                  value={sourceElementId}
-                  onValueChange={setSourceElementId}
-                >
+                <Select value={sourceElementId} onValueChange={setSourceElementId}>
                   <SelectTrigger id="source-element">
                     <SelectValue placeholder="Select a field" />
                   </SelectTrigger>
@@ -443,13 +407,10 @@ const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
                     {sourceElements.map(
                       (element) =>
                         element.id && (
-                          <SelectItem
-                            key={element.id.toString()}
-                            value={element.id.toString()}
-                          >
-                            {element.labelOverride || (element.template?.label || "Unknown")}
+                          <SelectItem key={element.id.toString()} value={element.id.toString()}>
+                            {element.labelOverride || element.template?.label || "Unknown"}
                           </SelectItem>
-                        )
+                        ),
                     )}
                   </SelectContent>
                 </Select>
@@ -457,10 +418,7 @@ const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
 
               <div className="grid gap-2">
                 <Label htmlFor="operator">Operator</Label>
-                <Select
-                  value={operator}
-                  onValueChange={(value: any) => setOperator(value)}
-                >
+                <Select value={operator} onValueChange={(value: any) => setOperator(value)}>
                   <SelectTrigger id="operator">
                     <SelectValue placeholder="Select an operator" />
                   </SelectTrigger>
@@ -486,10 +444,7 @@ const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
 
               <div className="grid gap-2">
                 <Label>Action</Label>
-                <RadioGroup
-                  value={action}
-                  onValueChange={(value: any) => setAction(value)}
-                >
+                <RadioGroup value={action} onValueChange={(value: any) => setAction(value)}>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="show" id="action-show" />
                     <Label htmlFor="action-show">Show</Label>
@@ -503,10 +458,7 @@ const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
 
               <div className="grid gap-2">
                 <Label htmlFor="target-type">Target Type</Label>
-                <Select
-                  value={targetType}
-                  onValueChange={(value: any) => setTargetType(value)}
-                >
+                <Select value={targetType} onValueChange={(value: any) => setTargetType(value)}>
                   <SelectTrigger id="target-type">
                     <SelectValue placeholder="Select target type" />
                   </SelectTrigger>
@@ -538,10 +490,7 @@ const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
             </div>
 
             <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setNewConditionDialogOpen(false)}
-              >
+              <Button variant="outline" onClick={() => setNewConditionDialogOpen(false)}>
                 Cancel
               </Button>
               <Button onClick={handleAddCondition}>Add Condition</Button>
@@ -549,10 +498,7 @@ const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
           </DialogContent>
         </Dialog>
 
-        <Dialog
-          open={editConditionDialogOpen}
-          onOpenChange={setEditConditionDialogOpen}
-        >
+        <Dialog open={editConditionDialogOpen} onOpenChange={setEditConditionDialogOpen}>
           <DialogContent className="max-w-lg">
             <DialogHeader>
               <DialogTitle>Edit Condition</DialogTitle>
@@ -562,10 +508,7 @@ const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
                 <Label htmlFor="edit-source-element">If this field</Label>
-                <Select
-                  value={sourceElementId}
-                  onValueChange={setSourceElementId}
-                >
+                <Select value={sourceElementId} onValueChange={setSourceElementId}>
                   <SelectTrigger id="edit-source-element">
                     <SelectValue placeholder="Select a field" />
                   </SelectTrigger>
@@ -573,13 +516,10 @@ const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
                     {sourceElements.map(
                       (element) =>
                         element.id && (
-                          <SelectItem
-                            key={element.id.toString()}
-                            value={element.id.toString()}
-                          >
-                            {element.labelOverride || (element.template?.label || "Unknown")}
+                          <SelectItem key={element.id.toString()} value={element.id.toString()}>
+                            {element.labelOverride || element.template?.label || "Unknown"}
                           </SelectItem>
-                        )
+                        ),
                     )}
                   </SelectContent>
                 </Select>
@@ -587,10 +527,7 @@ const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
 
               <div className="grid gap-2">
                 <Label htmlFor="edit-operator">Operator</Label>
-                <Select
-                  value={operator}
-                  onValueChange={(value: any) => setOperator(value)}
-                >
+                <Select value={operator} onValueChange={(value: any) => setOperator(value)}>
                   <SelectTrigger id="edit-operator">
                     <SelectValue placeholder="Select an operator" />
                   </SelectTrigger>
@@ -616,10 +553,7 @@ const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
 
               <div className="grid gap-2">
                 <Label>Action</Label>
-                <RadioGroup
-                  value={action}
-                  onValueChange={(value: any) => setAction(value)}
-                >
+                <RadioGroup value={action} onValueChange={(value: any) => setAction(value)}>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="show" id="edit-action-show" />
                     <Label htmlFor="edit-action-show">Show</Label>
@@ -633,10 +567,7 @@ const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
 
               <div className="grid gap-2">
                 <Label htmlFor="edit-target-type">Target Type</Label>
-                <Select
-                  value={targetType}
-                  onValueChange={(value: any) => setTargetType(value)}
-                >
+                <Select value={targetType} onValueChange={(value: any) => setTargetType(value)}>
                   <SelectTrigger id="edit-target-type">
                     <SelectValue placeholder="Select target type" />
                   </SelectTrigger>
@@ -668,10 +599,7 @@ const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
             </div>
 
             <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setEditConditionDialogOpen(false)}
-              >
+              <Button variant="outline" onClick={() => setEditConditionDialogOpen(false)}>
                 Cancel
               </Button>
               <Button onClick={handleEditCondition}>Save Changes</Button>
@@ -685,8 +613,7 @@ const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
           <CardContent className="pt-6">
             <div className="text-center p-6">
               <p className="text-gray-500 mb-4">
-                No conditions yet. Add conditional logic to make your form
-                dynamic.
+                No conditions yet. Add conditional logic to make your form dynamic.
               </p>
               <Button onClick={() => setNewConditionDialogOpen(true)}>
                 <PlusCircle className="mr-2 h-4 w-4" />
@@ -718,8 +645,7 @@ const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
                           variant="ghost"
                           size="sm"
                           onClick={() =>
-                            condition.id &&
-                            handleDeleteCondition(condition.id.toString())
+                            condition.id && handleDeleteCondition(condition.id.toString())
                           }
                         >
                           <Trash2 className="h-4 w-4" />
@@ -728,7 +654,7 @@ const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
                     </div>
                   </CardContent>
                 </Card>
-              )
+              ),
           )}
         </div>
       )}

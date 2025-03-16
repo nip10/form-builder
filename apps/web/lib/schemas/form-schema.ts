@@ -1,4 +1,4 @@
-import { z } from "zod"
+import { z } from "zod";
 
 // Define the element properties schema
 const elementPropertiesSchema = z
@@ -8,14 +8,14 @@ const elementPropertiesSchema = z
     max: z.number().optional(),
     options: z.array(z.string()).optional(),
   })
-  .catchall(z.any())
+  .catchall(z.any());
 
 // Define the validation rule schema
 const validationRuleSchema = z.object({
   type: z.string(),
   rule: z.any(),
   error_message: z.string(),
-})
+});
 
 // Define the form schema
 export const formSchema = z.object({
@@ -70,5 +70,4 @@ export const formSchema = z.object({
       validations: z.array(validationRuleSchema).optional(),
     }),
   ),
-})
-
+});

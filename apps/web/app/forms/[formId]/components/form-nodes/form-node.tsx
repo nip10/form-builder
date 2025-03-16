@@ -1,12 +1,12 @@
-import { Handle, Position } from "reactflow"
-import { FileText } from "lucide-react"
+import { Handle, Position } from "reactflow";
+import { FileText } from "lucide-react";
 
 interface FormNodeProps {
   data: {
-    label: string
-    formData: any
-  }
-  selected: boolean
+    label: string;
+    formData: any;
+  };
+  selected: boolean;
 }
 
 export default function FormNode({ data, selected }: FormNodeProps) {
@@ -20,6 +20,5 @@ export default function FormNode({ data, selected }: FormNodeProps) {
       </div>
       <Handle type="source" position={Position.Bottom} className="!bg-primary" />
     </div>
-  )
+  );
 }
-

@@ -42,7 +42,11 @@ interface ValidationResult {
 }
 
 // Helper function to get element properties
-const getElementProperty = (element: ElementInstance & { template?: ElementTemplate }, key: string, defaultValue?: any) => {
+const getElementProperty = (
+  element: ElementInstance & { template?: ElementTemplate },
+  key: string,
+  defaultValue?: any,
+) => {
   const properties = element.template?.properties || {};
   const propertiesOverride = element.propertiesOverride || {};
   return (propertiesOverride as any)[key] !== undefined
@@ -66,14 +70,9 @@ interface FormElementProps {
   error?: string;
 }
 
-const FormElement: React.FC<FormElementProps> = ({
-  element,
-  value,
-  onChange,
-  error,
-}) => {
-  const type = element.template?.type || '';
-  const label = element.labelOverride || element.template?.label || '';
+const FormElement: React.FC<FormElementProps> = ({ element, value, onChange, error }) => {
+  const type = element.template?.type || "";
+  const label = element.labelOverride || element.template?.label || "";
 
   switch (type) {
     case "text_input":
@@ -82,9 +81,7 @@ const FormElement: React.FC<FormElementProps> = ({
           <Label
             htmlFor={element.id.toString()}
             className={
-              element.required
-                ? 'after:content-["*"] after:ml-0.5 after:text-red-500'
-                : ""
+              element.required ? 'after:content-["*"] after:ml-0.5 after:text-red-500' : ""
             }
           >
             {label}
@@ -105,9 +102,7 @@ const FormElement: React.FC<FormElementProps> = ({
           <Label
             htmlFor={element.id.toString()}
             className={
-              element.required
-                ? 'after:content-["*"] after:ml-0.5 after:text-red-500'
-                : ""
+              element.required ? 'after:content-["*"] after:ml-0.5 after:text-red-500' : ""
             }
           >
             {label}
@@ -132,9 +127,7 @@ const FormElement: React.FC<FormElementProps> = ({
           <Label
             htmlFor={element.id.toString()}
             className={
-              element.required
-                ? 'after:content-["*"] after:ml-0.5 after:text-red-500'
-                : ""
+              element.required ? 'after:content-["*"] after:ml-0.5 after:text-red-500' : ""
             }
           >
             {label}
@@ -156,9 +149,7 @@ const FormElement: React.FC<FormElementProps> = ({
           <Label
             htmlFor={element.id.toString()}
             className={
-              element.required
-                ? 'after:content-["*"] after:ml-0.5 after:text-red-500'
-                : ""
+              element.required ? 'after:content-["*"] after:ml-0.5 after:text-red-500' : ""
             }
           >
             {label}
@@ -177,18 +168,12 @@ const FormElement: React.FC<FormElementProps> = ({
     case "checkbox":
       return (
         <div className="flex items-start space-x-2">
-          <Checkbox
-            id={element.id.toString()}
-            checked={!!value}
-            onCheckedChange={onChange}
-          />
+          <Checkbox id={element.id.toString()} checked={!!value} onCheckedChange={onChange} />
           <div className="grid gap-1.5 leading-none">
             <Label
               htmlFor={element.id.toString()}
               className={
-                element.required
-                  ? 'after:content-["*"] after:ml-0.5 after:text-red-500'
-                  : ""
+                element.required ? 'after:content-["*"] after:ml-0.5 after:text-red-500' : ""
               }
             >
               {label}
@@ -204,9 +189,7 @@ const FormElement: React.FC<FormElementProps> = ({
         <div className="grid gap-2">
           <Label
             className={
-              element.required
-                ? 'after:content-["*"] after:ml-0.5 after:text-red-500'
-                : ""
+              element.required ? 'after:content-["*"] after:ml-0.5 after:text-red-500' : ""
             }
           >
             {label}
@@ -230,9 +213,7 @@ const FormElement: React.FC<FormElementProps> = ({
           <Label
             htmlFor={element.id.toString()}
             className={
-              element.required
-                ? 'after:content-["*"] after:ml-0.5 after:text-red-500'
-                : ""
+              element.required ? 'after:content-["*"] after:ml-0.5 after:text-red-500' : ""
             }
           >
             {label}
@@ -240,11 +221,7 @@ const FormElement: React.FC<FormElementProps> = ({
           <Select value={value || ""} onValueChange={onChange}>
             <SelectTrigger id={element.id.toString()}>
               <SelectValue
-                placeholder={getElementProperty(
-                  element,
-                  "placeholder",
-                  "Select an option"
-                )}
+                placeholder={getElementProperty(element, "placeholder", "Select an option")}
               />
             </SelectTrigger>
             <SelectContent>
@@ -265,9 +242,7 @@ const FormElement: React.FC<FormElementProps> = ({
           <Label
             htmlFor={element.id.toString()}
             className={
-              element.required
-                ? 'after:content-["*"] after:ml-0.5 after:text-red-500'
-                : ""
+              element.required ? 'after:content-["*"] after:ml-0.5 after:text-red-500' : ""
             }
           >
             {label}
@@ -285,9 +260,7 @@ const FormElement: React.FC<FormElementProps> = ({
     case "text":
       return (
         <div className="space-y-1">
-          {label && (
-            <h3 className="text-lg font-medium">{label}</h3>
-          )}
+          {label && <h3 className="text-lg font-medium">{label}</h3>}
           <div
             className="text-sm text-gray-700"
             dangerouslySetInnerHTML={{
@@ -300,21 +273,11 @@ const FormElement: React.FC<FormElementProps> = ({
     case "image":
       return (
         <div className="space-y-2">
-          {label && (
-            <h3 className="text-lg font-medium">{label}</h3>
-          )}
+          {label && <h3 className="text-lg font-medium">{label}</h3>}
           <div className="overflow-hidden rounded-md">
             <img
-              src={getElementProperty(
-                element,
-                "src",
-                "/api/placeholder/400/300"
-              )}
-              alt={getElementProperty(
-                element,
-                "alt",
-                label || "Form image"
-              )}
+              src={getElementProperty(element, "src", "/api/placeholder/400/300")}
+              alt={getElementProperty(element, "alt", label || "Form image")}
               className="w-full object-cover"
             />
           </div>
@@ -334,9 +297,7 @@ const FormElement: React.FC<FormElementProps> = ({
 const FormRenderer: React.FC<FormRendererProps> = ({ form, onSubmit }) => {
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [formData, setFormData] = useState<Record<string, any>>({});
-  const [validationErrors, setValidationErrors] = useState<
-    Record<string, string>
-  >({});
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [visibility, setVisibility] = useState<Record<string, boolean>>({});
 
   // Cast form to any to avoid type errors with FormWithPages
@@ -417,9 +378,7 @@ const FormRenderer: React.FC<FormRendererProps> = ({ form, onSubmit }) => {
                 conditionMet = sourceValue !== condition.value;
                 break;
               case "contains":
-                conditionMet = String(sourceValue).includes(
-                  String(condition.value)
-                );
+                conditionMet = String(sourceValue).includes(String(condition.value));
                 break;
               case "greater_than":
                 conditionMet = Number(sourceValue) > Number(condition.value);
@@ -431,11 +390,8 @@ const FormRenderer: React.FC<FormRendererProps> = ({ form, onSubmit }) => {
 
             // Apply the condition result
             if (condition.target_id && condition.target_type) {
-              const targetKey = `${
-                condition.target_type
-              }_${condition.target_id.toString()}`;
-              newVisibility[targetKey] =
-                condition.action === "show" ? conditionMet : !conditionMet;
+              const targetKey = `${condition.target_type}_${condition.target_id.toString()}`;
+              newVisibility[targetKey] = condition.action === "show" ? conditionMet : !conditionMet;
             }
           } catch (error) {
             console.error("Condition evaluation error:", error);
@@ -596,9 +552,7 @@ const FormRenderer: React.FC<FormRendererProps> = ({ form, onSubmit }) => {
       <Card className="w-full max-w-2xl mx-auto">
         <CardContent className="pt-6">
           <div className="text-center p-6">
-            <p className="text-gray-500">
-              No form content available to display.
-            </p>
+            <p className="text-gray-500">No form content available to display.</p>
           </div>
         </CardContent>
       </Card>
@@ -616,9 +570,7 @@ const FormRenderer: React.FC<FormRendererProps> = ({ form, onSubmit }) => {
       <Card>
         <CardHeader>
           <CardTitle>{typedForm.title}</CardTitle>
-          {typedForm.description && (
-            <CardDescription>{typedForm.description}</CardDescription>
-          )}
+          {typedForm.description && <CardDescription>{typedForm.description}</CardDescription>}
         </CardHeader>
 
         <CardContent>
@@ -626,9 +578,7 @@ const FormRenderer: React.FC<FormRendererProps> = ({ form, onSubmit }) => {
             {visiblePages.length > 0 && (
               <div className="mb-4">
                 <div className="flex justify-between items-center mb-2">
-                  <h2 className="text-lg font-semibold">
-                    {visiblePages[currentPageIndex].title}
-                  </h2>
+                  <h2 className="text-lg font-semibold">{visiblePages[currentPageIndex].title}</h2>
                   <p className="text-sm text-gray-500">
                     Page {currentPageIndex + 1} of {visiblePages.length}
                   </p>
@@ -648,9 +598,7 @@ const FormRenderer: React.FC<FormRendererProps> = ({ form, onSubmit }) => {
                   key={element.id.toString()}
                   element={element}
                   value={formData[element.id.toString()]}
-                  onChange={(value) =>
-                    handleElementChange(element.id.toString(), value)
-                  }
+                  onChange={(value) => handleElementChange(element.id.toString(), value)}
                   error={validationErrors[element.id.toString()]}
                 />
               ))}

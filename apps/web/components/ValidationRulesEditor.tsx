@@ -5,7 +5,7 @@ import {
   Form,
   GroupInstance,
   PageInstance,
-  ElementTemplate
+  ElementTemplate,
 } from "@repo/database/src/schema";
 import { Button } from "@repo/ui/components/ui/button";
 import {
@@ -69,18 +69,24 @@ const toNumberId = (id: string): number => {
 };
 
 // Helper to flatten all elements from all pages
-const getAllElements = (form: FormWithRelations): (ElementInstance & { template?: ElementTemplate })[] => {
+const getAllElements = (
+  form: FormWithRelations,
+): (ElementInstance & { template?: ElementTemplate })[] => {
   const allElements: (ElementInstance & { template?: ElementTemplate })[] = [];
   if (form.pages) {
-    form.pages.forEach((page: PageInstance & {
-      elements?: (ElementInstance & { template?: ElementTemplate })[]
-    }) => {
-      if (page.elements) {
-        page.elements.forEach((element: ElementInstance & { template?: ElementTemplate }) => {
-          allElements.push(element);
-        });
-      }
-    });
+    form.pages.forEach(
+      (
+        page: PageInstance & {
+          elements?: (ElementInstance & { template?: ElementTemplate })[];
+        },
+      ) => {
+        if (page.elements) {
+          page.elements.forEach((element: ElementInstance & { template?: ElementTemplate }) => {
+            allElements.push(element);
+          });
+        }
+      },
+    );
   }
   return allElements;
 };
@@ -89,17 +95,12 @@ interface ValidationRulesEditorProps {
   form: FormWithRelations;
 }
 
-const ValidationRulesEditor: React.FC<ValidationRulesEditorProps> = ({
-  form,
-}) => {
-  const { addFormValidation, updateFormValidation, deleteFormValidation } =
-    useFormBuilder();
+const ValidationRulesEditor: React.FC<ValidationRulesEditorProps> = ({ form }) => {
+  const { addFormValidation, updateFormValidation, deleteFormValidation } = useFormBuilder();
 
   const [newValidationDialogOpen, setNewValidationDialogOpen] = useState(false);
-  const [editValidationDialogOpen, setEditValidationDialogOpen] =
-    useState(false);
-  const [currentValidation, setCurrentValidation] =
-    useState<FormValidation | null>(null);
+  const [editValidationDialogOpen, setEditValidationDialogOpen] = useState(false);
+  const [currentValidation, setCurrentValidation] = useState<FormValidation | null>(null);
 
   // Form state for new/edit validation
   const [validationName, setValidationName] = useState("");
@@ -139,9 +140,7 @@ const ValidationRulesEditor: React.FC<ValidationRulesEditorProps> = ({
           newRule = `{
   "if": [
     { "==": [{ "var": "${condition}" }, true] },
-    { "and": [${dependentFields
-      .map((id) => `{ "!!": { "var": "${id}" } }`)
-      .join(", ")}] },
+    { "and": [${dependentFields.map((id) => `{ "!!": { "var": "${id}" } }`).join(", ")}] },
     true
   ]
 }`;
@@ -221,15 +220,12 @@ const ValidationRulesEditor: React.FC<ValidationRulesEditorProps> = ({
       // Parse the JSON rule to validate it
       const parsedRule = JSON.parse(validationRule);
 
-      const success = await updateFormValidation(
-        parseInt(currentValidation.id.toString(), 10),
-        {
-          name: validationName,
-          rule: parsedRule,
-          errorMessage: validationErrorMessage,
-          affectedElementInstances: selectedElements,
-        }
-      );
+      const success = await updateFormValidation(parseInt(currentValidation.id.toString(), 10), {
+        name: validationName,
+        rule: parsedRule,
+        errorMessage: validationErrorMessage,
+        affectedElementInstances: selectedElements,
+      });
 
       if (success) {
         toast.success("Validation rule updated successfully");
@@ -247,9 +243,7 @@ const ValidationRulesEditor: React.FC<ValidationRulesEditorProps> = ({
 
   const handleDeleteValidation = async (validationId: string) => {
     if (
-      confirm(
-        "Are you sure you want to delete this validation rule? This action cannot be undone."
-      )
+      confirm("Are you sure you want to delete this validation rule? This action cannot be undone.")
     ) {
       const success = await deleteFormValidation(parseInt(validationId, 10));
 
@@ -269,7 +263,7 @@ const ValidationRulesEditor: React.FC<ValidationRulesEditorProps> = ({
     setSelectedElements(
       validation.affectedElementInstances
         ? validation.affectedElementInstances.map((id) => id.toString())
-        : []
+        : [],
     );
     setEditValidationDialogOpen(true);
   };
@@ -277,7 +271,9 @@ const ValidationRulesEditor: React.FC<ValidationRulesEditorProps> = ({
   // Helper to find element label by id
   const getElementLabelById = (elementId: string) => {
     const element = allElements.find((el) => el.id.toString() === elementId);
-    return element ? (element.labelOverride || (element.template?.label || "Unknown Element")) : "Unknown Element";
+    return element
+      ? element.labelOverride || element.template?.label || "Unknown Element"
+      : "Unknown Element";
   };
 
   return (
@@ -285,10 +281,7 @@ const ValidationRulesEditor: React.FC<ValidationRulesEditorProps> = ({
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold">Form Validation Rules</h2>
 
-        <Dialog
-          open={newValidationDialogOpen}
-          onOpenChange={setNewValidationDialogOpen}
-        >
+        <Dialog open={newValidationDialogOpen} onOpenChange={setNewValidationDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <PlusCircle className="mr-2 h-4 w-4" />
@@ -299,8 +292,7 @@ const ValidationRulesEditor: React.FC<ValidationRulesEditorProps> = ({
             <DialogHeader>
               <DialogTitle>Add New Validation Rule</DialogTitle>
               <DialogDescription>
-                Create a form-level validation rule to validate across multiple
-                fields
+                Create a form-level validation rule to validate across multiple fields
               </DialogDescription>
             </DialogHeader>
 
@@ -324,15 +316,9 @@ const ValidationRulesEditor: React.FC<ValidationRulesEditorProps> = ({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="custom">Custom Rule</SelectItem>
-                      <SelectItem value="sum_equals">
-                        Sum Equals 100%
-                      </SelectItem>
-                      <SelectItem value="min_max_comparison">
-                        Min/Max Comparison
-                      </SelectItem>
-                      <SelectItem value="all_required_if">
-                        Required Fields If Condition
-                      </SelectItem>
+                      <SelectItem value="sum_equals">Sum Equals 100%</SelectItem>
+                      <SelectItem value="min_max_comparison">Min/Max Comparison</SelectItem>
+                      <SelectItem value="all_required_if">Required Fields If Condition</SelectItem>
                     </SelectContent>
                   </Select>
                   <Button variant="outline" onClick={applyRuleTemplate}>
@@ -353,12 +339,10 @@ const ValidationRulesEditor: React.FC<ValidationRulesEditorProps> = ({
                       </TooltipTrigger>
                       <TooltipContent className="max-w-sm">
                         <p>
-                          Use JSON Logic format for validation rules. Reference
-                          fields using their IDs as variables.
+                          Use JSON Logic format for validation rules. Reference fields using their
+                          IDs as variables.
                         </p>
-                        <p className="mt-1">
-                          Example: {'{ ">": [{ "var": "age" }, 18] }'}
-                        </p>
+                        <p className="mt-1">Example: {'{ ">": [{ "var": "age" }, 18] }'}</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
@@ -393,26 +377,16 @@ const ValidationRulesEditor: React.FC<ValidationRulesEditorProps> = ({
                   ) : (
                     <div className="space-y-2">
                       {allElements.map((element) => (
-                        <div
-                          key={element.id.toString()}
-                          className="flex items-start space-x-2"
-                        >
+                        <div key={element.id.toString()} className="flex items-start space-x-2">
                           <Checkbox
                             id={`element-${element.id.toString()}`}
-                            checked={selectedElements.includes(
-                              element.id.toString()
-                            )}
+                            checked={selectedElements.includes(element.id.toString())}
                             onCheckedChange={(checked) => {
                               if (checked) {
-                                setSelectedElements([
-                                  ...selectedElements,
-                                  element.id.toString(),
-                                ]);
+                                setSelectedElements([...selectedElements, element.id.toString()]);
                               } else {
                                 setSelectedElements(
-                                  selectedElements.filter(
-                                    (id) => id !== element.id.toString()
-                                  )
+                                  selectedElements.filter((id) => id !== element.id.toString()),
                                 );
                               }
                             }}
@@ -422,7 +396,9 @@ const ValidationRulesEditor: React.FC<ValidationRulesEditorProps> = ({
                               htmlFor={`element-${element.id.toString()}`}
                               className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                             >
-                              {element.labelOverride || (element.template?.label || "Unknown Element")}
+                              {element.labelOverride ||
+                                element.template?.label ||
+                                "Unknown Element"}
                             </label>
                             <p className="text-sm text-muted-foreground">
                               {element.template?.type
@@ -434,10 +410,8 @@ const ValidationRulesEditor: React.FC<ValidationRulesEditorProps> = ({
                                   (p) =>
                                     p.elements &&
                                     p.elements.some(
-                                      (e) =>
-                                        e.id.toString() ===
-                                        element.id.toString()
-                                    )
+                                      (e) => e.id.toString() === element.id.toString(),
+                                    ),
                                 )?.titleOverride) ||
                                 "Unknown"}
                             </p>
@@ -451,10 +425,7 @@ const ValidationRulesEditor: React.FC<ValidationRulesEditorProps> = ({
             </div>
 
             <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setNewValidationDialogOpen(false)}
-              >
+              <Button variant="outline" onClick={() => setNewValidationDialogOpen(false)}>
                 Cancel
               </Button>
               <Button onClick={handleAddValidation}>Add Validation Rule</Button>
@@ -462,16 +433,11 @@ const ValidationRulesEditor: React.FC<ValidationRulesEditorProps> = ({
           </DialogContent>
         </Dialog>
 
-        <Dialog
-          open={editValidationDialogOpen}
-          onOpenChange={setEditValidationDialogOpen}
-        >
+        <Dialog open={editValidationDialogOpen} onOpenChange={setEditValidationDialogOpen}>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Edit Validation Rule</DialogTitle>
-              <DialogDescription>
-                Update form-level validation rule
-              </DialogDescription>
+              <DialogDescription>Update form-level validation rule</DialogDescription>
             </DialogHeader>
 
             <div className="grid gap-4 py-4">
@@ -494,15 +460,9 @@ const ValidationRulesEditor: React.FC<ValidationRulesEditorProps> = ({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="custom">Custom Rule</SelectItem>
-                      <SelectItem value="sum_equals">
-                        Sum Equals 100%
-                      </SelectItem>
-                      <SelectItem value="min_max_comparison">
-                        Min/Max Comparison
-                      </SelectItem>
-                      <SelectItem value="all_required_if">
-                        Required Fields If Condition
-                      </SelectItem>
+                      <SelectItem value="sum_equals">Sum Equals 100%</SelectItem>
+                      <SelectItem value="min_max_comparison">Min/Max Comparison</SelectItem>
+                      <SelectItem value="all_required_if">Required Fields If Condition</SelectItem>
                     </SelectContent>
                   </Select>
                   <Button variant="outline" onClick={applyRuleTemplate}>
@@ -523,12 +483,10 @@ const ValidationRulesEditor: React.FC<ValidationRulesEditorProps> = ({
                       </TooltipTrigger>
                       <TooltipContent className="max-w-sm">
                         <p>
-                          Use JSON Logic format for validation rules. Reference
-                          fields using their IDs as variables.
+                          Use JSON Logic format for validation rules. Reference fields using their
+                          IDs as variables.
                         </p>
-                        <p className="mt-1">
-                          Example: {'{ ">": [{ "var": "age" }, 18] }'}
-                        </p>
+                        <p className="mt-1">Example: {'{ ">": [{ "var": "age" }, 18] }'}</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
@@ -563,26 +521,16 @@ const ValidationRulesEditor: React.FC<ValidationRulesEditorProps> = ({
                   ) : (
                     <div className="space-y-2">
                       {allElements.map((element) => (
-                        <div
-                          key={element.id.toString()}
-                          className="flex items-start space-x-2"
-                        >
+                        <div key={element.id.toString()} className="flex items-start space-x-2">
                           <Checkbox
                             id={`edit-element-${element.id.toString()}`}
-                            checked={selectedElements.includes(
-                              element.id.toString()
-                            )}
+                            checked={selectedElements.includes(element.id.toString())}
                             onCheckedChange={(checked) => {
                               if (checked) {
-                                setSelectedElements([
-                                  ...selectedElements,
-                                  element.id.toString(),
-                                ]);
+                                setSelectedElements([...selectedElements, element.id.toString()]);
                               } else {
                                 setSelectedElements(
-                                  selectedElements.filter(
-                                    (id) => id !== element.id.toString()
-                                  )
+                                  selectedElements.filter((id) => id !== element.id.toString()),
                                 );
                               }
                             }}
@@ -592,7 +540,9 @@ const ValidationRulesEditor: React.FC<ValidationRulesEditorProps> = ({
                               htmlFor={`edit-element-${element.id.toString()}`}
                               className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                             >
-                              {element.labelOverride || (element.template?.label || "Unknown Element")}
+                              {element.labelOverride ||
+                                element.template?.label ||
+                                "Unknown Element"}
                             </label>
                             <p className="text-sm text-muted-foreground">
                               {element.template?.type
@@ -604,10 +554,8 @@ const ValidationRulesEditor: React.FC<ValidationRulesEditorProps> = ({
                                   (p) =>
                                     p.elements &&
                                     p.elements.some(
-                                      (e) =>
-                                        e.id.toString() ===
-                                        element.id.toString()
-                                    )
+                                      (e) => e.id.toString() === element.id.toString(),
+                                    ),
                                 )?.titleOverride) ||
                                 "Unknown"}
                             </p>
@@ -621,10 +569,7 @@ const ValidationRulesEditor: React.FC<ValidationRulesEditorProps> = ({
             </div>
 
             <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setEditValidationDialogOpen(false)}
-              >
+              <Button variant="outline" onClick={() => setEditValidationDialogOpen(false)}>
                 Cancel
               </Button>
               <Button onClick={handleEditValidation}>Save Changes</Button>
@@ -639,8 +584,7 @@ const ValidationRulesEditor: React.FC<ValidationRulesEditorProps> = ({
             <div className="text-center p-6">
               <Code className="h-10 w-10 text-gray-400 mb-4" />
               <p className="text-gray-500 mb-4">
-                No form validation rules yet. Add rules to validate across
-                multiple fields.
+                No form validation rules yet. Add rules to validate across multiple fields.
               </p>
               <Button onClick={() => setNewValidationDialogOpen(true)}>
                 <PlusCircle className="mr-2 h-4 w-4" />
@@ -668,9 +612,7 @@ const ValidationRulesEditor: React.FC<ValidationRulesEditorProps> = ({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() =>
-                          handleDeleteValidation(validation.id.toString())
-                        }
+                        onClick={() => handleDeleteValidation(validation.id.toString())}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -681,9 +623,7 @@ const ValidationRulesEditor: React.FC<ValidationRulesEditorProps> = ({
                 <CardContent>
                   <div className="grid gap-4">
                     <div>
-                      <h4 className="text-sm font-medium mb-2">
-                        Affected Elements:
-                      </h4>
+                      <h4 className="text-sm font-medium mb-2">Affected Elements:</h4>
                       <div className="flex flex-wrap gap-2">
                         {validation.affectedElementInstances &&
                           validation.affectedElementInstances.map((elementId) => (
@@ -698,9 +638,7 @@ const ValidationRulesEditor: React.FC<ValidationRulesEditorProps> = ({
                     </div>
 
                     <div>
-                      <h4 className="text-sm font-medium mb-2">
-                        Validation Rule:
-                      </h4>
+                      <h4 className="text-sm font-medium mb-2">Validation Rule:</h4>
                       <pre className="text-xs bg-gray-50 p-3 rounded overflow-x-auto">
                         {JSON.stringify(validation.rule, null, 2)}
                       </pre>

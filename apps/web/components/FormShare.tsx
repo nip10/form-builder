@@ -53,21 +53,13 @@ const FormShare: React.FC<FormShareProps> = ({ formId, formTitle }) => {
     <Card>
       <CardHeader>
         <CardTitle>Share Your Form</CardTitle>
-        <CardDescription>
-          Share your form with others to collect responses
-        </CardDescription>
+        <CardDescription>Share your form with others to collect responses</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
           <div className="flex items-center space-x-2">
-            <Switch
-              id="form-active"
-              checked={formActive}
-              onCheckedChange={setFormActive}
-            />
-            <Label htmlFor="form-active">
-              Form is {formActive ? "active" : "inactive"}
-            </Label>
+            <Switch id="form-active" checked={formActive} onCheckedChange={setFormActive} />
+            <Label htmlFor="form-active">Form is {formActive ? "active" : "inactive"}</Label>
           </div>
 
           <div className="grid gap-2">
@@ -75,34 +67,21 @@ const FormShare: React.FC<FormShareProps> = ({ formId, formTitle }) => {
             <div className="flex items-center space-x-2">
               <div className="relative flex-1">
                 <Link className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-                <Input
-                  id="form-url"
-                  value={formUrl}
-                  readOnly
-                  className="pl-8 pr-20"
-                />
+                <Input id="form-url" value={formUrl} readOnly className="pl-8 pr-20" />
                 <Button
                   variant="ghost"
                   size="sm"
                   className="absolute right-0 top-0 h-full px-3"
                   onClick={handleCopyLink}
                 >
-                  {copied ? (
-                    <Check className="h-4 w-4" />
-                  ) : (
-                    <Copy className="h-4 w-4" />
-                  )}
+                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                 </Button>
               </div>
             </div>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3">
-            <Button
-              variant="outline"
-              className="flex-1 gap-2"
-              onClick={handleCopyLink}
-            >
+            <Button variant="outline" className="flex-1 gap-2" onClick={handleCopyLink}>
               <Copy className="h-4 w-4" />
               Copy Link
             </Button>

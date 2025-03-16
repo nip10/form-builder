@@ -10,7 +10,7 @@ import { ValidationResult } from "@/types/form";
 export const validateElementClient = async (
   formId: string,
   elementInstanceId: string,
-  value: any
+  value: any,
 ): Promise<ValidationResult> => {
   try {
     const response = await fetch(`/api/forms/${formId}/validate`, {
@@ -47,7 +47,7 @@ export const validateElementClient = async (
 export const validatePageClient = async (
   formId: string,
   pageId: string,
-  formData: Record<string, any>
+  formData: Record<string, any>,
 ): Promise<ValidationResult> => {
   try {
     const response = await fetch(`/api/forms/${formId}/validate`, {
@@ -82,7 +82,7 @@ export const validatePageClient = async (
  */
 export const evaluateConditionsClient = async (
   formId: string,
-  formData: Record<string, any>
+  formData: Record<string, any>,
 ): Promise<Record<string, boolean>> => {
   try {
     const response = await fetch(`/api/forms/${formId}/validate`, {
@@ -112,17 +112,11 @@ export const evaluateConditionsClient = async (
  *
  * Note: This function expects a combined element (template + instance)
  */
-export const validateElementBasic = (
-  element: any,
-  value: any
-): ValidationResult => {
+export const validateElementBasic = (element: any, value: any): ValidationResult => {
   const result: ValidationResult = { valid: true, errors: [] };
 
   // Check required field
-  if (
-    element.required &&
-    (value === undefined || value === null || value === "")
-  ) {
+  if (element.required && (value === undefined || value === null || value === "")) {
     result.valid = false;
     result.errors.push({
       elementId: element.id?.toString(),
@@ -161,10 +155,7 @@ export const validateElementBasic = (
     }
 
     // Check min/max if they exist
-    if (
-      element.properties?.min !== undefined &&
-      numValue < element.properties.min
-    ) {
+    if (element.properties?.min !== undefined && numValue < element.properties.min) {
       result.valid = false;
       result.errors.push({
         elementId: element.id?.toString(),
@@ -172,10 +163,7 @@ export const validateElementBasic = (
       });
     }
 
-    if (
-      element.properties?.max !== undefined &&
-      numValue > element.properties.max
-    ) {
+    if (element.properties?.max !== undefined && numValue > element.properties.max) {
       result.valid = false;
       result.errors.push({
         elementId: element.id?.toString(),
@@ -232,10 +220,7 @@ export const isInputElement = (type: string): boolean => {
  *
  * Note: This function expects a page with combined elements (template + instance)
  */
-export const validatePageBasic = (
-  page: any,
-  formData: Record<string, any>
-): ValidationResult => {
+export const validatePageBasic = (page: any, formData: Record<string, any>): ValidationResult => {
   const result: ValidationResult = { valid: true, errors: [] };
 
   // Validate each input element on the page

@@ -1,12 +1,12 @@
-import { Handle, Position } from "reactflow"
-import { Layout } from "lucide-react"
+import { Handle, Position } from "reactflow";
+import { Layout } from "lucide-react";
 
 interface PageNodeProps {
   data: {
-    label: string
-    pageData: any
-  }
-  selected: boolean
+    label: string;
+    pageData: any;
+  };
+  selected: boolean;
 }
 
 export default function PageNode({ data, selected }: PageNodeProps) {
@@ -21,6 +21,5 @@ export default function PageNode({ data, selected }: PageNodeProps) {
       </div>
       <Handle type="source" position={Position.Right} className="!bg-primary" />
     </div>
-  )
+  );
 }
-

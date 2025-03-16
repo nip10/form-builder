@@ -17,7 +17,7 @@ const formIdSchema = z.coerce.number().int().positive();
 const formUpdateSchema = z.object({
   title: z.string().optional(),
   description: z.string().optional(),
-  status: z.enum(['draft', 'published']).optional(),
+  status: z.enum(["draft", "published"]).optional(),
   // Add other fields as needed
 });
 
@@ -28,17 +28,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const formIdResult = formIdSchema.safeParse(params.formId);
 
     if (!formIdResult.success) {
-      return NextResponse.json(
-        { error: "Invalid form ID format" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Invalid form ID format" }, { status: 400 });
     }
 
     const formId = formIdResult.data;
 
     // Check if we should populate the form
-    const shouldPopulate =
-      request.nextUrl.searchParams.get("populate") === "true";
+    const shouldPopulate = request.nextUrl.searchParams.get("populate") === "true";
 
     if (shouldPopulate) {
       // Get form with all relations
@@ -61,10 +57,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ form });
   } catch (error: any) {
     console.error("Error fetching form:", error);
-    return NextResponse.json(
-      { error: error.message || "Failed to fetch form" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error.message || "Failed to fetch form" }, { status: 500 });
   }
 }
 
@@ -75,10 +68,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const formIdResult = formIdSchema.safeParse(params.formId);
 
     if (!formIdResult.success) {
-      return NextResponse.json(
-        { error: "Invalid form ID format" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Invalid form ID format" }, { status: 400 });
     }
 
     const formId = formIdResult.data;
@@ -91,9 +81,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json(
         {
           error: "Invalid form data",
-          details: dataResult.error.format()
+          details: dataResult.error.format(),
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -111,10 +101,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ form: updatedForm });
   } catch (error) {
     console.error("Error updating form:", error);
-    return NextResponse.json(
-      { error: "Failed to update form" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to update form" }, { status: 500 });
   }
 }
 
@@ -125,10 +112,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const formIdResult = formIdSchema.safeParse(params.formId);
 
     if (!formIdResult.success) {
-      return NextResponse.json(
-        { error: "Invalid form ID format" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Invalid form ID format" }, { status: 400 });
     }
 
     const formId = formIdResult.data;
@@ -143,21 +127,12 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const success = await formRepository.deleteForm(formId);
 
     if (success) {
-      return NextResponse.json(
-        { message: "Form deleted successfully" },
-        { status: 200 }
-      );
+      return NextResponse.json({ message: "Form deleted successfully" }, { status: 200 });
     } else {
-      return NextResponse.json(
-        { error: "Failed to delete form" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Failed to delete form" }, { status: 500 });
     }
   } catch (error) {
     console.error("Error deleting form:", error);
-    return NextResponse.json(
-      { error: "Failed to delete form" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to delete form" }, { status: 500 });
   }
 }

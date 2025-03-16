@@ -28,7 +28,7 @@ const FormViewPage = () => {
           throw new Error("Failed to load form");
         }
 
-        const data = await response.json() as { form: FormWithRelations };
+        const data = (await response.json()) as { form: FormWithRelations };
         setForm(data.form);
       } catch (err: any) {
         setError(err.message || "Error loading form");
@@ -65,9 +65,7 @@ const FormViewPage = () => {
       <Alert variant="destructive" className="max-w-2xl mx-auto my-8">
         <AlertCircle className="h-4 w-4" />
         <AlertTitle>Form Not Found</AlertTitle>
-        <AlertDescription>
-          The requested form could not be found.
-        </AlertDescription>
+        <AlertDescription>The requested form could not be found.</AlertDescription>
       </Alert>
     );
   }

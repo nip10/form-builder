@@ -20,7 +20,7 @@ const formIdSchema = z.coerce.number().int().positive();
 const submissionSchema = z.object({
   completed: z.boolean().optional().default(true),
   data: z.record(z.any()).default({}),
-  submittedBy: z.string().optional()
+  submittedBy: z.string().optional(),
 });
 
 // GET /api/forms/[formId]/submissions - Get all submissions for a form
@@ -37,16 +37,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     // Get submissions for form
     const submissions = await db.query.SubmissionTable.findMany({
-      where: eq(SubmissionTable.formId, formId)
+      where: eq(SubmissionTable.formId, formId),
     });
 
     return NextResponse.json({ submissions });
   } catch (error) {
     console.error("Error fetching submissions:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch submissions" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to fetch submissions" }, { status: 500 });
   }
 }
 
@@ -70,9 +67,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json(
         {
           error: "Invalid submission data",
-          details: submissionResult.error.format()
+          details: submissionResult.error.format(),
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -89,22 +86,20 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // For now, we'll just create the submission without validation
 
     // Create submission
-    const [submission] = await db.insert(SubmissionTable)
+    const [submission] = await db
+      .insert(SubmissionTable)
       .values({
         formId: formId,
         formVersion: form.currentVersion,
         completed: submissionData.completed,
         data: submissionData.data,
         createdAt: new Date(),
-        submittedBy: submissionData.submittedBy
+        submittedBy: submissionData.submittedBy,
       })
       .returning();
 
     if (!submission) {
-      return NextResponse.json(
-        { error: "Failed to create submission" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Failed to create submission" }, { status: 500 });
     }
 
     return NextResponse.json(
@@ -112,13 +107,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         submission_id: submission.id,
         message: "Submission created successfully",
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     console.error("Error creating submission:", error);
-    return NextResponse.json(
-      { error: "Failed to create submission" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to create submission" }, { status: 500 });
   }
 }

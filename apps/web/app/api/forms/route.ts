@@ -8,7 +8,7 @@ const formRepository = new FormRepository();
 const createFormSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional().default(""),
-  owner_id: z.string().optional().nullable()
+  owner_id: z.string().optional().nullable(),
 });
 
 // GET /api/forms - Get all forms
@@ -19,10 +19,7 @@ export async function GET(): Promise<NextResponse> {
     return NextResponse.json({ forms });
   } catch (error) {
     console.error("Error fetching forms:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch forms" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to fetch forms" }, { status: 500 });
   }
 }
 
@@ -37,9 +34,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json(
         {
           error: "Invalid form data",
-          details: formResult.error.format()
+          details: formResult.error.format(),
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -49,15 +46,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const form = await formRepository.createForm({
       title: data.title,
       description: data.description,
-      createdBy: data.owner_id
+      createdBy: data.owner_id,
     });
 
     return NextResponse.json({ form }, { status: 201 });
   } catch (error) {
     console.error("Error creating form:", error);
-    return NextResponse.json(
-      { error: "Failed to create form" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to create form" }, { status: 500 });
   }
 }

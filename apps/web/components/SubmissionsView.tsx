@@ -4,7 +4,7 @@ import {
   ElementInstance,
   ElementTemplate,
   Form,
-  PageInstance
+  PageInstance,
 } from "@repo/database/src/schema";
 import {
   Card,
@@ -59,7 +59,7 @@ interface SubmissionViewProps {
 // Helper to find element by id across all pages
 const getElementById = (
   form: FormWithPages,
-  elementId: string
+  elementId: string,
 ): (ElementInstance & { template?: ElementTemplate }) | null => {
   if (!form.pages) return null;
 
@@ -73,10 +73,7 @@ const getElementById = (
 };
 
 // Component to display a single submission
-const SubmissionView: React.FC<SubmissionViewProps> = ({
-  submission,
-  form,
-}) => {
+const SubmissionView: React.FC<SubmissionViewProps> = ({ submission, form }) => {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -110,14 +107,8 @@ const SubmissionView: React.FC<SubmissionViewProps> = ({
 
               if (element.template?.type === "checkbox") {
                 displayValue = value ? "Yes" : "No";
-              } else if (
-                value === null ||
-                value === undefined ||
-                value === ""
-              ) {
-                displayValue = (
-                  <span className="text-gray-400">Not answered</span>
-                );
+              } else if (value === null || value === undefined || value === "") {
+                displayValue = <span className="text-gray-400">Not answered</span>;
               } else if (Array.isArray(value)) {
                 displayValue = value.join(", ");
               } else if (typeof value === "object") {
@@ -146,8 +137,7 @@ const SubmissionsView: React.FC<SubmissionsViewProps> = ({ formId, form }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedSubmission, setSelectedSubmission] =
-    useState<Submission | null>(null);
+  const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
 
   const fetchSubmissions = useCallback(async () => {
     try {
@@ -190,7 +180,8 @@ const SubmissionsView: React.FC<SubmissionsViewProps> = ({ formId, form }) => {
           if (page.elements) {
             page.elements.forEach((element) => {
               if (element.template?.type !== "text" && element.template?.type !== "image") {
-                elements[element.id.toString()] = element.labelOverride || element.template?.label || "";
+                elements[element.id.toString()] =
+                  element.labelOverride || element.template?.label || "";
               }
             });
           }
@@ -198,11 +189,7 @@ const SubmissionsView: React.FC<SubmissionsViewProps> = ({ formId, form }) => {
       }
 
       // Create CSV headers
-      const headers = [
-        "Submission ID",
-        "Timestamp",
-        ...Object.values(elements),
-      ];
+      const headers = ["Submission ID", "Timestamp", ...Object.values(elements)];
 
       // Create CSV rows
       const rows = submissions.map((submission) => {
@@ -213,9 +200,7 @@ const SubmissionsView: React.FC<SubmissionsViewProps> = ({ formId, form }) => {
 
         // Add data for each element
         Object.keys(elements).forEach((elementId) => {
-          const value = submission.data
-            ? submission.data[elementId]
-            : undefined;
+          const value = submission.data ? submission.data[elementId] : undefined;
 
           if (value === null || value === undefined) {
             row.push("");
@@ -234,19 +219,14 @@ const SubmissionsView: React.FC<SubmissionsViewProps> = ({ formId, form }) => {
       });
 
       // Combine headers and rows
-      const csv = [headers.join(","), ...rows.map((row) => row.join(","))].join(
-        "\n"
-      );
+      const csv = [headers.join(","), ...rows.map((row) => row.join(","))].join("\n");
 
       // Create a blob and download
       const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.setAttribute("href", url);
-      link.setAttribute(
-        "download",
-        `${form.title.replace(/\s+/g, "_")}_submissions.csv`
-      );
+      link.setAttribute("download", `${form.title.replace(/\s+/g, "_")}_submissions.csv`);
       link.style.visibility = "hidden";
       document.body.appendChild(link);
       link.click();
@@ -284,15 +264,9 @@ const SubmissionsView: React.FC<SubmissionsViewProps> = ({ formId, form }) => {
           if (typeof value === "boolean") {
             const boolStr = value ? "yes" : "no";
             if (boolStr.includes(query)) return true;
-          } else if (
-            typeof value === "string" &&
-            value.toLowerCase().includes(query)
-          ) {
+          } else if (typeof value === "string" && value.toLowerCase().includes(query)) {
             return true;
-          } else if (
-            typeof value === "number" &&
-            value.toString().includes(query)
-          ) {
+          } else if (typeof value === "number" && value.toString().includes(query)) {
             return true;
           } else if (
             Array.isArray(value) &&
@@ -312,9 +286,7 @@ const SubmissionsView: React.FC<SubmissionsViewProps> = ({ formId, form }) => {
       <Card className="mb-6">
         <CardHeader>
           <CardTitle>Form Submissions</CardTitle>
-          <CardDescription>
-            View and manage submissions for {form.title}
-          </CardDescription>
+          <CardDescription>View and manage submissions for {form.title}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row justify-between gap-4 mb-6">
@@ -328,11 +300,7 @@ const SubmissionsView: React.FC<SubmissionsViewProps> = ({ formId, form }) => {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <Button
-              variant="outline"
-              onClick={handleExportCSV}
-              disabled={submissions.length === 0}
-            >
+            <Button variant="outline" onClick={handleExportCSV} disabled={submissions.length === 0}>
               <Download className="mr-2 h-4 w-4" />
               Export CSV
             </Button>
@@ -345,20 +313,13 @@ const SubmissionsView: React.FC<SubmissionsViewProps> = ({ formId, form }) => {
           ) : error ? (
             <div className="text-center p-8 text-red-500">
               <p>{error}</p>
-              <Button
-                variant="outline"
-                className="mt-4"
-                onClick={fetchSubmissions}
-              >
+              <Button variant="outline" className="mt-4" onClick={fetchSubmissions}>
                 Try Again
               </Button>
             </div>
           ) : submissions.length === 0 ? (
             <div className="text-center p-8 text-gray-500">
-              <p>
-                No submissions yet. Share your form to start collecting
-                responses.
-              </p>
+              <p>No submissions yet. Share your form to start collecting responses.</p>
             </div>
           ) : filteredSubmissions.length === 0 ? (
             <div className="text-center p-8 text-gray-500">
@@ -378,9 +339,7 @@ const SubmissionsView: React.FC<SubmissionsViewProps> = ({ formId, form }) => {
                 <TableBody>
                   {filteredSubmissions.map((submission) => (
                     <TableRow key={submission.id.toString()}>
-                      <TableCell>
-                        {new Date(submission.createdAt).toLocaleString()}
-                      </TableCell>
+                      <TableCell>{new Date(submission.createdAt).toLocaleString()}</TableCell>
                       <TableCell>
                         {submission.completed ? (
                           <span className="text-green-600 bg-green-50 px-2 py-1 rounded-full text-xs font-medium">
@@ -393,10 +352,7 @@ const SubmissionsView: React.FC<SubmissionsViewProps> = ({ formId, form }) => {
                         )}
                       </TableCell>
                       <TableCell>
-                        {submission.data
-                          ? Object.keys(submission.data).length
-                          : 0}{" "}
-                        answered fields
+                        {submission.data ? Object.keys(submission.data).length : 0} answered fields
                       </TableCell>
                       <TableCell>
                         <Button
@@ -424,9 +380,7 @@ const SubmissionsView: React.FC<SubmissionsViewProps> = ({ formId, form }) => {
         <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>Submission Details</DialogTitle>
-            <DialogDescription>
-              Review the details of this form submission
-            </DialogDescription>
+            <DialogDescription>Review the details of this form submission</DialogDescription>
           </DialogHeader>
 
           {selectedSubmission && (

@@ -29,7 +29,12 @@ import { Textarea } from "@repo/ui/components/ui/textarea";
 import { PlusCircle, Edit, Trash2, MoveUp, MoveDown } from "lucide-react";
 import { toast } from "sonner";
 import ElementsList from "./ElementsList";
-import { ElementInstance, ElementTemplate, PageInstance, PageTemplate } from "@repo/database/src/schema";
+import {
+  ElementInstance,
+  ElementTemplate,
+  PageInstance,
+  PageTemplate,
+} from "@repo/database/src/schema";
 
 // Define the extended page type with template
 type PageWithTemplate = PageInstance & {
@@ -54,8 +59,9 @@ const PagesList: React.FC<PagesListProps> = ({ form }) => {
   const [newPageDescription, setNewPageDescription] = useState("");
 
   // Sort pages by order
-  const sortedPages =
-    form.pages ? [...form.pages].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0)) : [];
+  const sortedPages = form.pages
+    ? [...form.pages].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
+    : [];
 
   const handleAddPage = async () => {
     if (!newPageTitle.trim()) {
@@ -98,11 +104,7 @@ const PagesList: React.FC<PagesListProps> = ({ form }) => {
   };
 
   const handleDeletePage = async (pageId: number) => {
-    if (
-      confirm(
-        "Are you sure you want to delete this page? This action cannot be undone."
-      )
-    ) {
+    if (confirm("Are you sure you want to delete this page? This action cannot be undone.")) {
       const success = await deletePage(pageId);
 
       if (success) {
@@ -117,7 +119,7 @@ const PagesList: React.FC<PagesListProps> = ({ form }) => {
     if ((page.orderIndex || 0) <= 1) return;
 
     const pageToSwap = sortedPages.find(
-      (p: PageWithTemplate) => (p.orderIndex || 0) === (page.orderIndex || 0) - 1
+      (p: PageWithTemplate) => (p.orderIndex || 0) === (page.orderIndex || 0) - 1,
     );
     if (!pageToSwap) return;
 
@@ -139,7 +141,7 @@ const PagesList: React.FC<PagesListProps> = ({ form }) => {
     if ((page.orderIndex || 0) >= sortedPages.length) return;
 
     const pageToSwap = sortedPages.find(
-      (p: PageWithTemplate) => (p.orderIndex || 0) === (page.orderIndex || 0) + 1
+      (p: PageWithTemplate) => (p.orderIndex || 0) === (page.orderIndex || 0) + 1,
     );
     if (!pageToSwap) return;
 
@@ -179,9 +181,7 @@ const PagesList: React.FC<PagesListProps> = ({ form }) => {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Add New Page</DialogTitle>
-              <DialogDescription>
-                Create a new page for your form
-              </DialogDescription>
+              <DialogDescription>Create a new page for your form</DialogDescription>
             </DialogHeader>
 
             <div className="grid gap-4 py-4">
@@ -207,10 +207,7 @@ const PagesList: React.FC<PagesListProps> = ({ form }) => {
             </div>
 
             <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setNewPageDialogOpen(false)}
-              >
+              <Button variant="outline" onClick={() => setNewPageDialogOpen(false)}>
                 Cancel
               </Button>
               <Button onClick={handleAddPage}>Add Page</Button>
@@ -236,9 +233,7 @@ const PagesList: React.FC<PagesListProps> = ({ form }) => {
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="edit-page-description">
-                  Description (Optional)
-                </Label>
+                <Label htmlFor="edit-page-description">Description (Optional)</Label>
                 <Textarea
                   id="edit-page-description"
                   value={newPageDescription}
@@ -250,10 +245,7 @@ const PagesList: React.FC<PagesListProps> = ({ form }) => {
             </div>
 
             <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setEditPageDialogOpen(false)}
-              >
+              <Button variant="outline" onClick={() => setEditPageDialogOpen(false)}>
                 Cancel
               </Button>
               <Button onClick={handleEditPage}>Save Changes</Button>
@@ -279,10 +271,7 @@ const PagesList: React.FC<PagesListProps> = ({ form }) => {
                   )}
                 </div>
 
-                <div
-                  className="flex items-center space-x-2"
-                  onClick={(e) => e.stopPropagation()}
-                >
+                <div className="flex items-center space-x-2" onClick={(e) => e.stopPropagation()}>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -299,18 +288,10 @@ const PagesList: React.FC<PagesListProps> = ({ form }) => {
                   >
                     <MoveDown className="h-4 w-4" />
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => openEditPageDialog(page)}
-                  >
+                  <Button variant="ghost" size="sm" onClick={() => openEditPageDialog(page)}>
                     <Edit className="h-4 w-4" />
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDeletePage(page.id)}
-                  >
+                  <Button variant="ghost" size="sm" onClick={() => handleDeletePage(page.id)}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
@@ -325,10 +306,7 @@ const PagesList: React.FC<PagesListProps> = ({ form }) => {
                   )}
                 </CardHeader>
                 <CardContent>
-                  <ElementsList
-                    pageId={page.id}
-                    elements={page.elements || []}
-                  />
+                  <ElementsList pageId={page.id} elements={page.elements || []} />
                 </CardContent>
               </Card>
             </AccordionContent>

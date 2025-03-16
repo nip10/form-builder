@@ -8,7 +8,7 @@ import {
   ConditionTable,
   GroupInstanceTable,
   FormTable,
-  Form
+  Form,
 } from "@repo/database/src/schema";
 import { eq, inArray } from "drizzle-orm";
 
@@ -23,18 +23,16 @@ export interface ValidationResult {
 }
 
 // Helper to find an element by ID
-const findElementById = async (
-  elementId: number
-): Promise<any | null> => {
+const findElementById = async (elementId: number): Promise<any | null> => {
   try {
     const elementInstance = await db.query.ElementInstanceTable.findFirst({
-      where: eq(ElementInstanceTable.id, elementId)
+      where: eq(ElementInstanceTable.id, elementId),
     });
 
     if (!elementInstance) return null;
 
     const elementTemplate = await db.query.ElementTemplateTable.findFirst({
-      where: eq(ElementTemplateTable.id, elementInstance.templateId)
+      where: eq(ElementTemplateTable.id, elementInstance.templateId),
     });
 
     if (!elementTemplate) return null;
@@ -58,69 +56,61 @@ const findElementById = async (
 };
 
 // Helper to get all elements for a form
-const getFormElements = async (
-  form: Form
-): Promise<any[]> => {
+const getFormElements = async (form: Form): Promise<any[]> => {
   try {
     // Get all pages for this form's groups
     const groups = await db.query.GroupInstanceTable.findMany({
-      where: eq(GroupInstanceTable.formId, form.id)
+      where: eq(GroupInstanceTable.formId, form.id),
     });
 
     if (groups.length === 0) return [];
 
-    const groupIds = groups.map(g => g.id);
+    const groupIds = groups.map((g) => g.id);
 
     const pages = await db.query.PageInstanceTable.findMany({
-      where: groupIds.length > 0 ?
-        inArray(PageInstanceTable.groupInstanceId, groupIds) :
-        undefined
+      where: groupIds.length > 0 ? inArray(PageInstanceTable.groupInstanceId, groupIds) : undefined,
     });
 
     if (pages.length === 0) return [];
 
-    const pageIds = pages.map(p => p.id);
+    const pageIds = pages.map((p) => p.id);
 
     // Get all elements for these pages
     const elementInstances = await db.query.ElementInstanceTable.findMany({
-      where: pageIds.length > 0 ?
-        inArray(ElementInstanceTable.pageInstanceId, pageIds) :
-        undefined
+      where: pageIds.length > 0 ? inArray(ElementInstanceTable.pageInstanceId, pageIds) : undefined,
     });
 
     if (elementInstances.length === 0) return [];
 
     // Get all templates
-    const templateIds = elementInstances.map(e => e.templateId);
+    const templateIds = elementInstances.map((e) => e.templateId);
 
     const elementTemplates = await db.query.ElementTemplateTable.findMany({
-      where: templateIds.length > 0 ?
-        inArray(ElementTemplateTable.id, templateIds) :
-        undefined
+      where: templateIds.length > 0 ? inArray(ElementTemplateTable.id, templateIds) : undefined,
     });
 
     // Create a map of templates by ID for easy lookup
-    const templatesMap = new Map(
-      elementTemplates.map(template => [template.id, template])
-    );
+    const templatesMap = new Map(elementTemplates.map((template) => [template.id, template]));
 
     // Combine templates and instances
-    return elementInstances.map(instance => {
-      const template = templatesMap.get(instance.templateId);
-      if (!template) return null;
+    return elementInstances
+      .map((instance) => {
+        const template = templatesMap.get(instance.templateId);
+        if (!template) return null;
 
-      return {
-        ...template,
-        id: instance.id,
-        required: instance.required,
-        validations: instance.validations || [],
-        label: instance.labelOverride || template.label,
-        properties: {
-          ...(template.properties || {}),
-          ...(instance.propertiesOverride || {}),
-        },
-      };
-    }).filter(Boolean);
+        return {
+          ...template,
+          id: instance.id,
+          required: instance.required,
+          validations: instance.validations || [],
+          label: instance.labelOverride || template.label,
+          properties: {
+            ...(template.properties || {}),
+            ...(instance.propertiesOverride || {}),
+          },
+        };
+      })
+      .filter(Boolean);
   } catch (error) {
     console.error("Error getting form elements:", error);
     return [];
@@ -128,17 +118,11 @@ const getFormElements = async (
 };
 
 // Evaluate element-level validations
-export const validateElement = (
-  element: any,
-  value: any
-): ValidationResult => {
+export const validateElement = (element: any, value: any): ValidationResult => {
   const result: ValidationResult = { valid: true, errors: [] };
 
   // Check required field first (special case)
-  if (
-    element.required &&
-    (value === undefined || value === null || value === "")
-  ) {
+  if (element.required && (value === undefined || value === null || value === "")) {
     result.valid = false;
     result.errors.push({
       elementId: element.id,
@@ -199,7 +183,7 @@ export const validateElement = (
 // Validate entire form submission
 export const validateFormSubmission = async (
   form: Form,
-  submissionData: Record<string, any>
+  submissionData: Record<string, any>,
 ): Promise<ValidationResult> => {
   const result: ValidationResult = { valid: true, errors: [] };
 
@@ -220,7 +204,7 @@ export const validateFormSubmission = async (
 
   // 3. Get and validate form-level validations
   const formValidations = await db.query.FormValidationTable.findMany({
-    where: eq(FormValidationTable.formId, form.id)
+    where: eq(FormValidationTable.formId, form.id),
   });
 
   // TODO: Implement form-level validation for SQL database
@@ -230,37 +214,31 @@ export const validateFormSubmission = async (
 };
 
 // Helper to process conditional logic
-export const evaluateConditions = async (
-  form: Form,
-): Promise<Record<string, boolean>> => {
+export const evaluateConditions = async (form: Form): Promise<Record<string, boolean>> => {
   const visibility: Record<string, boolean> = {};
 
   // Get groups for this form
   const groups = await db.query.GroupInstanceTable.findMany({
-    where: eq(GroupInstanceTable.formId, form.id)
+    where: eq(GroupInstanceTable.formId, form.id),
   });
 
   if (groups.length === 0) return visibility;
 
   // Get pages for these groups
-  const groupIds = groups.map(g => g.id);
+  const groupIds = groups.map((g) => g.id);
   const pages = await db.query.PageInstanceTable.findMany({
-    where: groupIds.length > 0 ?
-      inArray(PageInstanceTable.groupInstanceId, groupIds) :
-      undefined
+    where: groupIds.length > 0 ? inArray(PageInstanceTable.groupInstanceId, groupIds) : undefined,
   });
 
   // Get elements for these pages
-  const pageIds = pages.map(p => p.id);
+  const pageIds = pages.map((p) => p.id);
   const elements = await db.query.ElementInstanceTable.findMany({
-    where: pageIds.length > 0 ?
-      inArray(ElementInstanceTable.pageInstanceId, pageIds) :
-      undefined
+    where: pageIds.length > 0 ? inArray(ElementInstanceTable.pageInstanceId, pageIds) : undefined,
   });
 
   // Create maps for quick lookups
   const pagesByGroupId = new Map();
-  pages.forEach(page => {
+  pages.forEach((page) => {
     const groupId = page.groupInstanceId;
     if (!pagesByGroupId.has(groupId)) {
       pagesByGroupId.set(groupId, []);
@@ -269,7 +247,7 @@ export const evaluateConditions = async (
   });
 
   const elementsByPageId = new Map();
-  elements.forEach(element => {
+  elements.forEach((element) => {
     const pageId = element.pageInstanceId;
     if (!elementsByPageId.has(pageId)) {
       elementsByPageId.set(pageId, []);
@@ -294,7 +272,7 @@ export const evaluateConditions = async (
 
   // Get all conditions for this form
   const conditions = await db.query.ConditionTable.findMany({
-    where: eq(ConditionTable.formId, form.id)
+    where: eq(ConditionTable.formId, form.id),
   });
 
   // TODO: Implement condition evaluation logic for SQL database

@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { Button } from '@repo/ui/components/ui/button';
-import { fonts } from '@repo/ui/lib/fonts';
-import type NextError from 'next/error';
+import { Button } from "@repo/ui/components/ui/button";
+import { fonts } from "@repo/ui/lib/fonts";
+import type NextError from "next/error";
 
 type GlobalErrorProperties = {
   readonly error: NextError & { digest?: string };

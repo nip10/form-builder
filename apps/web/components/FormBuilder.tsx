@@ -12,15 +12,7 @@ import {
 import { Input } from "@repo/ui/components/ui/input";
 import { Label } from "@repo/ui/components/ui/label";
 import { Textarea } from "@repo/ui/components/ui/textarea";
-import {
-  Save,
-  Layers,
-  Settings,
-  List,
-  Eye,
-  Database,
-  Share2,
-} from "lucide-react";
+import { Save, Layers, Settings, List, Eye, Database, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import PagesList from "./PagesList";
 import ValidationRulesEditor from "./ValidationRulesEditor";
@@ -35,8 +27,7 @@ interface FormBuilderProps {
 }
 
 const FormBuilder: React.FC<FormBuilderProps> = ({ formId, ownerId }) => {
-  const { form, loading, error, loadForm, createForm, saveForm } =
-    useFormBuilder();
+  const { form, loading, error, loadForm, createForm, saveForm } = useFormBuilder();
 
   const [activeTab, setActiveTab] = useState("structure");
   const [title, setTitle] = useState("");
@@ -68,9 +59,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formId, ownerId }) => {
     setTitle(e.target.value);
   };
 
-  const handleDescriptionChange = (
-    e: React.ChangeEvent<HTMLTextAreaElement>
-  ) => {
+  const handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setDescription(e.target.value);
   };
 
@@ -95,9 +84,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formId, ownerId }) => {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <h2 className="text-lg font-medium">Loading...</h2>
-          <p className="text-sm text-gray-500">
-            Please wait while we load the form builder
-          </p>
+          <p className="text-sm text-gray-500">Please wait while we load the form builder</p>
         </div>
       </div>
     );
@@ -112,9 +99,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formId, ownerId }) => {
           <Button
             variant="outline"
             className="mt-4"
-            onClick={() =>
-              formId ? loadForm(formId) : createForm("New Form", ownerId)
-            }
+            onClick={() => (formId ? loadForm(formId) : createForm("New Form", ownerId))}
           >
             Try Again
           </Button>
@@ -199,9 +184,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formId, ownerId }) => {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="structure">
-          {form && <PagesList form={form as any} />}
-        </TabsContent>
+        <TabsContent value="structure">{form && <PagesList form={form as any} />}</TabsContent>
 
         <TabsContent value="validation">
           {form && <ValidationRulesEditor form={form as any} />}
@@ -216,9 +199,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formId, ownerId }) => {
             <Card>
               <CardHeader>
                 <CardTitle>Form Preview</CardTitle>
-                <CardDescription>
-                  Preview how your form will appear to users
-                </CardDescription>
+                <CardDescription>Preview how your form will appear to users</CardDescription>
               </CardHeader>
             </Card>
           </div>
@@ -234,15 +215,11 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formId, ownerId }) => {
         </TabsContent>
 
         <TabsContent value="submissions">
-          {form && (
-            <SubmissionsView formId={form.id.toString()} form={form as any} />
-          )}
+          {form && <SubmissionsView formId={form.id.toString()} form={form as any} />}
         </TabsContent>
 
         <TabsContent value="share">
-          {form && (
-            <FormShare formId={form.id.toString()} formTitle={form.title} />
-          )}
+          {form && <FormShare formId={form.id.toString()} formTitle={form.title} />}
         </TabsContent>
       </Tabs>
     </div>

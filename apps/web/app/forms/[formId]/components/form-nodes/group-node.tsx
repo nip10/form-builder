@@ -1,12 +1,12 @@
-import { Handle, Position } from "reactflow"
-import { Folder } from "lucide-react"
+import { Handle, Position } from "reactflow";
+import { Folder } from "lucide-react";
 
 interface GroupNodeProps {
   data: {
-    label: string
-    groupData: any
-  }
-  selected: boolean
+    label: string;
+    groupData: any;
+  };
+  selected: boolean;
 }
 
 export default function GroupNode({ data, selected }: GroupNodeProps) {
@@ -21,6 +21,5 @@ export default function GroupNode({ data, selected }: GroupNodeProps) {
       </div>
       <Handle type="source" position={Position.Right} className="!bg-primary" />
     </div>
-  )
+  );
 }
-

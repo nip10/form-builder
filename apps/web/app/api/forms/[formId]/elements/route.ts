@@ -6,7 +6,7 @@ import {
   ElementInstanceTable,
   PageInstanceTable,
   ElementTemplateTable,
-  elementTypeEnum
+  elementTypeEnum,
 } from "@repo/database/src/schema";
 import { eq } from "drizzle-orm";
 import { FormRepository } from "@/lib/repositories/form-repository";
@@ -39,19 +39,13 @@ const elementSchema = z.object({
 });
 
 // POST /api/forms/[formId]/elements - Add element to a page
-export async function POST(
-  request: NextRequest,
-  { params }: RouteParams
-) {
+export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     // Validate and parse the form ID
     const formIdResult = formIdSchema.safeParse(params.formId);
 
     if (!formIdResult.success) {
-      return NextResponse.json(
-        { error: "Invalid form ID format" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Invalid form ID format" }, { status: 400 });
     }
 
     const formId = formIdResult.data;
@@ -64,9 +58,9 @@ export async function POST(
       return NextResponse.json(
         {
           error: "Invalid element data",
-          details: validationResult.error.format()
+          details: validationResult.error.format(),
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -74,7 +68,7 @@ export async function POST(
 
     // Check if form exists
     const form = await db.query.FormTable.findFirst({
-      where: eq(FormTable.id, formId)
+      where: eq(FormTable.id, formId),
     });
 
     if (!form) {
@@ -83,7 +77,7 @@ export async function POST(
 
     // Check if page exists and belongs to the form
     const page = await db.query.PageInstanceTable.findFirst({
-      where: eq(PageInstanceTable.id, pageId)
+      where: eq(PageInstanceTable.id, pageId),
     });
 
     if (!page) {
@@ -91,31 +85,30 @@ export async function POST(
     }
 
     // Create a new element template first
-    const [newElementTemplate] = await db.insert(ElementTemplateTable)
+    const [newElementTemplate] = await db
+      .insert(ElementTemplateTable)
       .values({
         type: element.type,
         label: element.label,
         defaultValue: element.default_value,
         properties: element.properties,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .returning();
 
     if (!newElementTemplate) {
-      return NextResponse.json(
-        { error: "Failed to create element template" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Failed to create element template" }, { status: 500 });
     }
 
     // Get the count of existing elements for ordering
     const existingElements = await db.query.ElementInstanceTable.findMany({
-      where: eq(ElementInstanceTable.pageInstanceId, pageId)
+      where: eq(ElementInstanceTable.pageInstanceId, pageId),
     });
 
     // Create the element instance
-    const [newElementInstance] = await db.insert(ElementInstanceTable)
+    const [newElementInstance] = await db
+      .insert(ElementInstanceTable)
       .values({
         templateId: newElementTemplate.id,
         pageInstanceId: pageId,
@@ -123,21 +116,16 @@ export async function POST(
         required: element.required,
         validations: element.validations,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .returning();
 
     if (!newElementInstance) {
-      return NextResponse.json(
-        { error: "Failed to create element instance" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Failed to create element instance" }, { status: 500 });
     }
 
     // Update the form's updated_at timestamp
-    await db.update(FormTable)
-      .set({ updatedAt: new Date() })
-      .where(eq(FormTable.id, formId));
+    await db.update(FormTable).set({ updatedAt: new Date() }).where(eq(FormTable.id, formId));
 
     // Get the updated form with relations
     const updatedForm = await formRepository.getFormWithRelations(formId);
@@ -146,17 +134,14 @@ export async function POST(
       {
         element: {
           ...newElementTemplate,
-          instance: newElementInstance
+          instance: newElementInstance,
         },
-        form: updatedForm
+        form: updatedForm,
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     console.error("Error adding element:", error);
-    return NextResponse.json(
-      { error: "Failed to add element" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to add element" }, { status: 500 });
   }
 }

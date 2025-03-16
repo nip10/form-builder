@@ -1,7 +1,7 @@
-import './styles.css';
-import { DesignSystemProvider } from '@repo/ui';
-import { fonts } from '@repo/ui/lib/fonts';
-import type { ReactNode } from 'react';
+import "./styles.css";
+import { DesignSystemProvider } from "@repo/ui";
+import { fonts } from "@repo/ui/lib/fonts";
+import type { ReactNode } from "react";
 
 type RootLayoutProperties = {
   readonly children: ReactNode;

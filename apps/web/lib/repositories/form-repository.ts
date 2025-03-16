@@ -1,4 +1,4 @@
-import { db } from '@repo/database';
+import { db } from "@repo/database";
 import {
   FormTable,
   Form,
@@ -16,9 +16,9 @@ import {
   ConditionTable,
   Condition,
   ElementTemplate,
-  FormValidation
-} from '@repo/database/src/schema';
-import { eq, desc, inArray } from 'drizzle-orm';
+  FormValidation,
+} from "@repo/database/src/schema";
+import { eq, desc, inArray } from "drizzle-orm";
 
 export interface FormWithRelations extends Form {
   groups: (GroupInstance & {
@@ -34,20 +34,20 @@ export class FormRepository {
   // Form operations
   async getAllForms(): Promise<Form[]> {
     return db.query.FormTable.findMany({
-      orderBy: [desc(FormTable.updatedAt)]
+      orderBy: [desc(FormTable.updatedAt)],
     });
   }
 
   async getFormById(id: number): Promise<Form | undefined> {
     return db.query.FormTable.findFirst({
-      where: eq(FormTable.id, id)
+      where: eq(FormTable.id, id),
     });
   }
 
   async getFormWithRelations(id: number): Promise<FormWithRelations | null> {
     // Get the form
     const form = await db.query.FormTable.findFirst({
-      where: eq(FormTable.id, id)
+      where: eq(FormTable.id, id),
     });
 
     if (!form) return null;
@@ -55,52 +55,48 @@ export class FormRepository {
     // Get the groups
     const groups = await db.query.GroupInstanceTable.findMany({
       where: eq(GroupInstanceTable.formId, id),
-      orderBy: [GroupInstanceTable.orderIndex]
+      orderBy: [GroupInstanceTable.orderIndex],
     });
 
     // Get all pages for this form's groups
-    const groupIds = groups.map(g => g.id);
+    const groupIds = groups.map((g) => g.id);
     const pages = await db.query.PageInstanceTable.findMany({
-      where: groupIds.length > 0 ?
-        inArray(PageInstanceTable.groupInstanceId, groupIds) :
-        undefined,
-      orderBy: [PageInstanceTable.orderIndex]
+      where: groupIds.length > 0 ? inArray(PageInstanceTable.groupInstanceId, groupIds) : undefined,
+      orderBy: [PageInstanceTable.orderIndex],
     });
 
     // Get all elements for these pages
-    const pageIds = pages.map(p => p.id);
+    const pageIds = pages.map((p) => p.id);
     const elements = await db.query.ElementInstanceTable.findMany({
-      where: pageIds.length > 0 ?
-        inArray(ElementInstanceTable.pageInstanceId, pageIds) :
-        undefined,
-      orderBy: [ElementInstanceTable.orderIndex]
+      where: pageIds.length > 0 ? inArray(ElementInstanceTable.pageInstanceId, pageIds) : undefined,
+      orderBy: [ElementInstanceTable.orderIndex],
     });
 
     // Get form validations
     const validations = await db.query.FormValidationTable.findMany({
-      where: eq(FormValidationTable.formId, id)
+      where: eq(FormValidationTable.formId, id),
     });
 
     // Get conditions
     const conditions = await db.query.ConditionTable.findMany({
-      where: eq(ConditionTable.formId, id)
+      where: eq(ConditionTable.formId, id),
     });
 
     // Map pages to their groups and add elements
-    const pagesWithElements = pages.map(page => {
-      const pageElements = elements.filter(e => e.pageInstanceId === page.id);
+    const pagesWithElements = pages.map((page) => {
+      const pageElements = elements.filter((e) => e.pageInstanceId === page.id);
       return {
         ...page,
-        elements: pageElements
+        elements: pageElements,
       };
     });
 
     // Map groups with their pages
-    const groupsWithPages = groups.map(group => {
-      const groupPages = pagesWithElements.filter(p => p.groupInstanceId === group.id);
+    const groupsWithPages = groups.map((group) => {
+      const groupPages = pagesWithElements.filter((p) => p.groupInstanceId === group.id);
       return {
         ...group,
-        pages: groupPages
+        pages: groupPages,
       };
     });
 
@@ -109,14 +105,15 @@ export class FormRepository {
       ...form,
       groups: groupsWithPages,
       validations,
-      conditions
+      conditions,
     };
   }
 
-  async createForm(data: Pick<NewForm, 'title' | 'description'>): Promise<Form> {
-    const [form] = await db.insert(FormTable)
+  async createForm(data: Pick<NewForm, "title" | "description">): Promise<Form> {
+    const [form] = await db
+      .insert(FormTable)
       .values({
-        title: data.title || 'Untitled Form',
+        title: data.title || "Untitled Form",
         description: data.description,
       })
       .returning();
@@ -128,11 +125,12 @@ export class FormRepository {
     return form;
   }
 
-  async updateForm(id: Form['id'], data: Partial<NewForm>): Promise<Form> {
-    const [updated] = await db.update(FormTable)
+  async updateForm(id: Form["id"], data: Partial<NewForm>): Promise<Form> {
+    const [updated] = await db
+      .update(FormTable)
       .set({
         ...data,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(FormTable.id, id))
       .returning();
@@ -145,7 +143,8 @@ export class FormRepository {
   }
 
   async deleteForm(id: number): Promise<boolean> {
-    const result = await db.delete(FormTable)
+    const result = await db
+      .delete(FormTable)
       .where(eq(FormTable.id, id))
       .returning({ id: FormTable.id });
 
@@ -153,13 +152,14 @@ export class FormRepository {
   }
 
   // Group operations
-  async createGroup(formId: Form['id'], data: Partial<NewGroupInstance>): Promise<GroupInstance> {
+  async createGroup(formId: Form["id"], data: Partial<NewGroupInstance>): Promise<GroupInstance> {
     // Get the count of existing groups to determine order
     const existingGroups = await db.query.GroupInstanceTable.findMany({
-      where: eq(GroupInstanceTable.formId, formId)
+      where: eq(GroupInstanceTable.formId, formId),
     });
 
-    const [group] = await db.insert(GroupInstanceTable)
+    const [group] = await db
+      .insert(GroupInstanceTable)
       .values({
         templateId: data.templateId || 1,
         formId: formId,
@@ -177,13 +177,17 @@ export class FormRepository {
   }
 
   // Page operations
-  async createPage(groupId: GroupInstance['id'], data: Partial<NewPageInstance>): Promise<PageInstance> {
+  async createPage(
+    groupId: GroupInstance["id"],
+    data: Partial<NewPageInstance>,
+  ): Promise<PageInstance> {
     // Get the count of existing pages to determine order
     const existingPages = await db.query.PageInstanceTable.findMany({
-      where: eq(PageInstanceTable.groupInstanceId, groupId)
+      where: eq(PageInstanceTable.groupInstanceId, groupId),
     });
 
-    const [page] = await db.insert(PageInstanceTable)
+    const [page] = await db
+      .insert(PageInstanceTable)
       .values({
         templateId: data.templateId || 1,
         groupInstanceId: groupId,
@@ -201,13 +205,17 @@ export class FormRepository {
   }
 
   // Element operations
-  async createElement(pageId: PageInstance['id'], data: Partial<NewElementInstance>): Promise<ElementInstance> {
+  async createElement(
+    pageId: PageInstance["id"],
+    data: Partial<NewElementInstance>,
+  ): Promise<ElementInstance> {
     // Get the count of existing elements to determine order
     const existingElements = await db.query.ElementInstanceTable.findMany({
-      where: eq(ElementInstanceTable.pageInstanceId, pageId)
+      where: eq(ElementInstanceTable.pageInstanceId, pageId),
     });
 
-    const [element] = await db.insert(ElementInstanceTable)
+    const [element] = await db
+      .insert(ElementInstanceTable)
       .values({
         templateId: data.templateId || 1,
         pageInstanceId: pageId,
