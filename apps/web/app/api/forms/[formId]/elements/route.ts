@@ -1,109 +1,154 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ObjectId } from "mongodb";
-import { ElementDocument, ElementOptions } from "@/lib/schemas";
-import { FormModel, ElementModel, PageModel } from "@/lib/models";
-import { initializePapr } from "@/lib/db";
-import { DocumentForInsert } from "papr";
+import { z } from "zod";
+import { db } from "@repo/database";
+import {
+  FormTable,
+  ElementInstanceTable,
+  PageInstanceTable,
+  ElementTemplateTable,
+  elementTypeEnum
+} from "@repo/database/src/schema";
+import { eq } from "drizzle-orm";
+import { FormRepository } from "@/lib/repositories/form-repository";
+
+interface RouteParams {
+  params: {
+    formId: string;
+  };
+}
+
+const formRepository = new FormRepository();
+
+// Zod schema for form ID validation
+const formIdSchema = z.coerce.number().int().positive();
+
+// Zod schema for page ID validation
+const pageIdSchema = z.coerce.number().int().positive();
+
+// Zod schema for element creation
+const elementSchema = z.object({
+  pageId: pageIdSchema,
+  element: z.object({
+    type: z.enum(elementTypeEnum.enumValues),
+    label: z.string().min(1, "Label is required"),
+    required: z.boolean().optional().default(false),
+    default_value: z.string().optional(),
+    properties: z.record(z.any()).optional().default({}),
+    validations: z.array(z.any()).optional().default([]),
+  }),
+});
 
 // POST /api/forms/[formId]/elements - Add element to a page
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ formId: string }> }
+  { params }: RouteParams
 ) {
   try {
-    await initializePapr();
+    // Validate and parse the form ID
+    const formIdResult = formIdSchema.safeParse(params.formId);
 
-    const { formId: formIdParam } = await params;
-    // Validate form ID
-    if (!ObjectId.isValid(formIdParam)) {
-      return NextResponse.json({ error: "Invalid form ID" }, { status: 400 });
-    }
-
-    const formId = new ObjectId(formIdParam);
-    const data = await request.json();
-
-    // Validate required fields
-    if (
-      !data.pageId ||
-      !data.element ||
-      !data.element.type ||
-      !data.element.label
-    ) {
+    if (!formIdResult.success) {
       return NextResponse.json(
-        { error: "PageId, element type, and label are required" },
+        { error: "Invalid form ID format" },
         { status: 400 }
       );
     }
 
-    // Validate page ID
-    if (!ObjectId.isValid(data.pageId)) {
-      return NextResponse.json({ error: "Invalid page ID" }, { status: 400 });
+    const formId = formIdResult.data;
+
+    // Parse and validate the request body
+    const requestData = await request.json();
+    const validationResult = elementSchema.safeParse(requestData);
+
+    if (!validationResult.success) {
+      return NextResponse.json(
+        {
+          error: "Invalid element data",
+          details: validationResult.error.format()
+        },
+        { status: 400 }
+      );
     }
 
-    // Find the form and page
-    const form = await FormModel.findOne({ _id: formId });
+    const { pageId, element } = validationResult.data;
+
+    // Check if form exists
+    const form = await db.query.FormTable.findFirst({
+      where: eq(FormTable.id, formId)
+    });
 
     if (!form) {
       return NextResponse.json({ error: "Form not found" }, { status: 404 });
     }
 
-    if (!form.pages) {
-      return NextResponse.json({ error: "Form has no pages" }, { status: 404 });
-    }
-
-    const pageIndex = form.pages.findIndex(
-      (pageId) => pageId.toString() === data.pageId
-    );
-
-    if (pageIndex === -1) {
-      return NextResponse.json(
-        { error: "Page not found in form" },
-        { status: 404 }
-      );
-    }
-
-    // Fetch the actual page document
-    const page = await PageModel.findOne({ _id: new ObjectId(data.pageId) });
+    // Check if page exists and belongs to the form
+    const page = await db.query.PageInstanceTable.findFirst({
+      where: eq(PageInstanceTable.id, pageId)
+    });
 
     if (!page) {
       return NextResponse.json({ error: "Page not found" }, { status: 404 });
     }
 
-    // Create new element
-    const newElement: DocumentForInsert<ElementDocument, ElementOptions> = {
-      type: data.element.type,
-      label: data.element.label,
-      required: data.element.required || false,
-      order: (page.element_instances?.length || 0) + 1,
-      default_value: data.element.default_value,
-      properties: data.element.properties || {},
-      validations: data.element.validations || [],
-    };
+    // Create a new element template first
+    const [newElementTemplate] = await db.insert(ElementTemplateTable)
+      .values({
+        type: element.type,
+        label: element.label,
+        defaultValue: element.default_value,
+        properties: element.properties,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
 
-    // Save the element to the database
-    await ElementModel.insertOne(newElement);
+    if (!newElementTemplate) {
+      return NextResponse.json(
+        { error: "Failed to create element template" },
+        { status: 500 }
+      );
+    }
 
-    // Add element reference to page
-    await PageModel.updateOne(
-      { _id: new ObjectId(data.pageId) },
-      {
-        $push: { element_instances: newElement._id },
-      }
-    );
+    // Get the count of existing elements for ordering
+    const existingElements = await db.query.ElementInstanceTable.findMany({
+      where: eq(ElementInstanceTable.pageInstanceId, pageId)
+    });
 
-    // Also update the form's updated_at timestamp
-    await FormModel.updateOne(
-      { _id: formId },
-      { $set: { updated_at: new Date() } }
-    );
+    // Create the element instance
+    const [newElementInstance] = await db.insert(ElementInstanceTable)
+      .values({
+        templateId: newElementTemplate.id,
+        pageInstanceId: pageId,
+        orderIndex: existingElements.length + 1,
+        required: element.required,
+        validations: element.validations,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
 
-    // Get updated form
-    const updatedForm = await FormModel.findOne({ _id: formId });
+    if (!newElementInstance) {
+      return NextResponse.json(
+        { error: "Failed to create element instance" },
+        { status: 500 }
+      );
+    }
+
+    // Update the form's updated_at timestamp
+    await db.update(FormTable)
+      .set({ updatedAt: new Date() })
+      .where(eq(FormTable.id, formId));
+
+    // Get the updated form with relations
+    const updatedForm = await formRepository.getFormWithRelations(formId);
 
     return NextResponse.json(
       {
-        element: newElement,
-        form: updatedForm,
+        element: {
+          ...newElementTemplate,
+          instance: newElementInstance
+        },
+        form: updatedForm
       },
       { status: 201 }
     );

@@ -1,40 +1,82 @@
 import { NextRequest, NextResponse } from "next/server";
-import { initializePapr } from "@/lib/db";
+import { db } from "@repo/database";
+import { FormRepository } from "@/lib/repositories/form-repository";
 import {
-  ElementModel,
-  PageModel,
-  ConditionModel,
-  GroupModel,
-  FormModel,
-  ElementInstanceModel,
-  FormPageModel,
-} from "@/lib/models";
-import { ObjectId } from "bson";
+  ElementInstanceTable,
+  ElementTemplateTable,
+  PageInstanceTable,
+  ConditionTable
+} from "@repo/database/src/schema";
+import { eq, inArray } from "drizzle-orm";
 import { validateElement } from "@/lib/validation";
+import { z } from "zod";
+import jsonLogic from "json-logic-js";
 
 interface RouteParams {
-  params: Promise<{
+  params: {
     formId: string;
-  }>;
+  };
 }
+
+const formRepository = new FormRepository();
+
+// Zod schema for form ID validation
+const formIdSchema = z.coerce.number().int().positive();
+
+// Zod schema for element ID validation
+const elementIdSchema = z.coerce.number().int().positive();
+
+// Zod schema for page ID validation
+const pageIdSchema = z.coerce.number().int().positive();
+
+// Zod schema for element validation request
+const elementValidationSchema = z.object({
+  elementId: elementIdSchema,
+  value: z.any()
+});
+
+// Zod schema for page validation request
+const pageValidationSchema = z.object({
+  pageId: pageIdSchema,
+  formData: z.record(z.any())
+});
+
+// Zod schema for condition evaluation request
+const conditionEvaluationSchema = z.object({
+  formData: z.record(z.any())
+});
 
 // POST /api/forms/[formId]/validate - Validate a single element
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
-    // Initialize Papr for this request
-    await initializePapr();
+    // Validate and parse the form ID
+    const formIdResult = formIdSchema.safeParse(params.formId);
 
-    // Await the params Promise to get the formId
-    const { formId } = await params;
-    const { elementId, value } = await request.json();
-
-    if (!ObjectId.isValid(formId) || !ObjectId.isValid(elementId)) {
-      return NextResponse.json({ error: "Invalid ID format" }, { status: 400 });
+    if (!formIdResult.success) {
+      return NextResponse.json({ error: "Invalid form ID format" }, { status: 400 });
     }
 
+    const formId = formIdResult.data;
+
+    // Parse and validate the request body
+    const requestData = await request.json();
+    const validationResult = elementValidationSchema.safeParse(requestData);
+
+    if (!validationResult.success) {
+      return NextResponse.json(
+        {
+          error: "Invalid validation request",
+          details: validationResult.error.format()
+        },
+        { status: 400 }
+      );
+    }
+
+    const { elementId, value } = validationResult.data;
+
     // Find the element instance
-    const elementInstance = await ElementInstanceModel.findOne({
-      _id: new ObjectId(elementId),
+    const elementInstance = await db.query.ElementInstanceTable.findFirst({
+      where: eq(ElementInstanceTable.id, elementId)
     });
 
     if (!elementInstance) {
@@ -45,8 +87,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Find the element template
-    const elementTemplate = await ElementModel.findOne({
-      _id: elementInstance.template_id,
+    const elementTemplate = await db.query.ElementTemplateTable.findFirst({
+      where: eq(ElementTemplateTable.id, elementInstance.templateId)
     });
 
     if (!elementTemplate) {
@@ -59,21 +101,21 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Combine template and instance for validation
     const combinedElement = {
       ...elementTemplate,
-      _id: elementInstance._id, // Use instance ID for validation results
+      id: elementInstance.id, // Use instance ID for validation results
       required: elementInstance.required,
       validations: elementInstance.validations || [],
       // Override template properties with instance-specific ones if they exist
-      label: elementInstance.label_override || elementTemplate.label,
+      label: elementInstance.labelOverride || elementTemplate.label,
       properties: {
         ...(elementTemplate.properties || {}),
-        ...(elementInstance.properties_override || {}),
+        ...(elementInstance.propertiesOverride || {}),
       },
     };
 
     // Validate the element
     const result = validateElement(combinedElement, value);
 
-    // Convert ObjectId to string in errors
+    // Convert ID to string in errors
     const sanitizedResult = {
       valid: result.valid,
       errors: result.errors.map((error) => ({
@@ -96,37 +138,59 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 // PUT /api/forms/[formId]/validate - Validate a page
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
-    // Initialize Papr for this request
-    await initializePapr();
+    // Validate and parse the form ID
+    const formIdResult = formIdSchema.safeParse(params.formId);
 
-    // Await the params Promise to get the formId
-    const { formId } = await params;
-    const { pageId, formData } = await request.json();
-
-    if (!ObjectId.isValid(formId) || !ObjectId.isValid(pageId)) {
-      return NextResponse.json({ error: "Invalid ID format" }, { status: 400 });
+    if (!formIdResult.success) {
+      return NextResponse.json({ error: "Invalid form ID format" }, { status: 400 });
     }
 
+    const formId = formIdResult.data;
+
+    // Parse and validate the request body
+    const requestData = await request.json();
+    const validationResult = pageValidationSchema.safeParse(requestData);
+
+    if (!validationResult.success) {
+      return NextResponse.json(
+        {
+          error: "Invalid page validation request",
+          details: validationResult.error.format()
+        },
+        { status: 400 }
+      );
+    }
+
+    const { pageId, formData } = validationResult.data;
+
     // Find the page
-    const page = await PageModel.findOne({ _id: new ObjectId(pageId) });
+    const page = await db.query.PageInstanceTable.findFirst({
+      where: eq(PageInstanceTable.id, pageId)
+    });
+
     if (!page) {
       return NextResponse.json({ error: "Page not found" }, { status: 404 });
     }
 
     // Find all element instances for this page
-    const elementInstances = await ElementInstanceModel.find({
-      _id: { $in: page.element_instances || [] },
+    const elementInstances = await db.query.ElementInstanceTable.findMany({
+      where: eq(ElementInstanceTable.pageInstanceId, pageId)
     });
 
     // Get all template IDs
-    const templateIds = elementInstances
-      .map((instance) => instance.template_id)
-      .filter((id): id is ObjectId => id !== undefined);
+    const templateIds = elementInstances.map(instance => instance.templateId);
 
     // Find all element templates
-    const elementTemplates = await ElementModel.find({
-      _id: { $in: templateIds },
+    const elementTemplates = await db.query.ElementTemplateTable.findMany({
+      where: templateIds.length > 0 ?
+        inArray(ElementTemplateTable.id, templateIds) :
+        undefined
     });
+
+    // Create a map of templates by ID for easy lookup
+    const templatesMap = new Map(
+      elementTemplates.map(template => [template.id, template])
+    );
 
     // Validate each element
     const result = {
@@ -139,15 +203,11 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     };
 
     for (const instance of elementInstances) {
-      const instanceId = instance._id.toString();
+      const instanceId = instance.id.toString();
       const value = formData[instanceId];
 
       // Find the corresponding template
-      const template = instance.template_id
-        ? elementTemplates.find(
-            (t) => t._id.toString() === instance.template_id?.toString()
-          )
-        : undefined;
+      const template = templatesMap.get(instance.templateId);
 
       if (!template) {
         console.error(`Template not found for instance ${instanceId}`);
@@ -157,14 +217,14 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       // Combine template and instance for validation
       const combinedElement = {
         ...template,
-        _id: instance._id, // Use instance ID for validation results
+        id: instance.id, // Use instance ID for validation results
         required: instance.required,
         validations: instance.validations || [],
         // Override template properties with instance-specific ones if they exist
-        label: instance.label_override || template.label,
+        label: instance.labelOverride || template.label,
         properties: {
           ...(template.properties || {}),
-          ...(instance.properties_override || {}),
+          ...(instance.propertiesOverride || {}),
         },
       };
 
@@ -172,7 +232,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
       if (!elementValidation.valid) {
         result.valid = false;
-        // Convert ObjectId to string in errors
+        // Convert ID to string in errors
         result.errors.push(
           ...elementValidation.errors.map((error) => ({
             elementId: error.elementId ? error.elementId.toString() : undefined,
@@ -196,118 +256,126 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 // PATCH /api/forms/[formId]/validate - Evaluate conditions
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
-    // Initialize Papr for this request
-    await initializePapr();
+    // Validate and parse the form ID
+    const formIdResult = formIdSchema.safeParse(params.formId);
 
-    // Await the params Promise to get the formId
-    const { formId } = await params;
-    const { formData } = await request.json();
-
-    if (!ObjectId.isValid(formId)) {
+    if (!formIdResult.success) {
       return NextResponse.json(
         { error: "Invalid form ID format" },
         { status: 400 }
       );
     }
 
+    const formId = formIdResult.data;
+
+    // Parse and validate the request body
+    const requestData = await request.json();
+    const validationResult = conditionEvaluationSchema.safeParse(requestData);
+
+    if (!validationResult.success) {
+      return NextResponse.json(
+        {
+          error: "Invalid condition evaluation request",
+          details: validationResult.error.format()
+        },
+        { status: 400 }
+      );
+    }
+
+    const { formData } = validationResult.data;
+
     // Find the form
-    const form = await FormModel.findOne({ _id: new ObjectId(formId) });
+    const form = await formRepository.getFormById(formId);
     if (!form) {
       return NextResponse.json({ error: "Form not found" }, { status: 404 });
     }
 
-    // Get all form-page junctions for this form
-    const formPages = await FormPageModel.find({
-      form_id: form._id,
-    });
-
     // Get all conditions for this form
-    const conditions = await ConditionModel.find({
-      _id: { $in: form.conditions || [] },
+    const conditions = await db.query.ConditionTable.findMany({
+      where: eq(ConditionTable.formId, formId)
     });
 
-    // Get all pages referenced in form-pages
-    const pageIds = formPages
-      .map((fp) => fp.page_id)
-      .filter((id): id is ObjectId => id !== undefined);
-    const pages = await PageModel.find({
-      _id: { $in: pageIds },
-    });
+    // Get all groups for this form
+    const formWithRelations = await formRepository.getFormWithRelations(formId);
+    if (!formWithRelations) {
+      return NextResponse.json({ error: "Form not found" }, { status: 404 });
+    }
 
-    // Get all groups
-    const groups = await GroupModel.find({
-      _id: { $in: form.groups || [] },
-    });
+    const groups = formWithRelations.groups;
+    const pages = formWithRelations.pages;
 
     // Initialize visibility (all visible by default)
     const visibility: Record<string, boolean> = {};
 
     // Set default visibility for groups
     for (const group of groups) {
-      if (group._id) {
-        visibility[`group_${group._id.toString()}`] = true;
-      }
+      visibility[`group_${group.id}`] = true;
     }
 
-    // Set default visibility for pages and element instances
+    // Set default visibility for pages
     for (const page of pages) {
-      if (page._id) {
-        visibility[`page_${page._id.toString()}`] = true;
-      }
+      visibility[`page_${page.id}`] = true;
 
-      // Get element instances for this page
-      if (page.element_instances && page.element_instances.length > 0) {
-        const elementInstances = await ElementInstanceModel.find({
-          _id: { $in: page.element_instances },
-        });
-
-        for (const instance of elementInstances) {
-          if (instance._id) {
-            visibility[`element_${instance._id.toString()}`] = true;
-          }
-        }
+      // Set default visibility for elements
+      for (const element of page.elements || []) {
+        visibility[`element_${element.id}`] = true;
       }
     }
 
-    // Process each condition
-    for (const condition of conditions) {
-      try {
-        if (!condition.source_element_id) continue;
+    // Implement condition evaluation logic for SQL database
+    if (conditions.length > 0) {
+      // Process each condition
+      for (const condition of conditions) {
+        try {
+          // Apply JSON Logic rule to form data
+          const isRuleMet = jsonLogic.apply(condition.rule as any, formData);
 
-        const sourceValue = formData[condition.source_element_id.toString()];
-        let conditionMet = false;
+          // Determine target visibility based on condition action and rule result
+          const shouldBeVisible = condition.action === 'show' ? isRuleMet : !isRuleMet;
 
-        // Evaluate the condition
-        switch (condition.operator) {
-          case "equals":
-            conditionMet = sourceValue === condition.value;
-            break;
-          case "not_equals":
-            conditionMet = sourceValue !== condition.value;
-            break;
-          case "contains":
-            conditionMet = String(sourceValue).includes(
-              String(condition.value)
-            );
-            break;
-          case "greater_than":
-            conditionMet = Number(sourceValue) > Number(condition.value);
-            break;
-          case "less_than":
-            conditionMet = Number(sourceValue) < Number(condition.value);
-            break;
+          // Update visibility based on target type
+          const targetKey = `${condition.targetType.toLowerCase()}_${condition.targetId}`;
+          visibility[targetKey] = shouldBeVisible;
+
+          // If hiding a group, also hide its pages and elements
+          if (condition.targetType === 'group' && !shouldBeVisible) {
+            const groupId = condition.targetId;
+
+            // Find pages in this group
+            const groupPages = pages.filter(page => {
+              const pageGroup = groups.find(g =>
+                g.pages?.some(p => p.id === page.id)
+              );
+              return pageGroup?.id === groupId;
+            });
+
+            // Hide all pages in this group
+            for (const page of groupPages) {
+              visibility[`page_${page.id}`] = false;
+
+              // Hide all elements in this page
+              for (const element of page.elements || []) {
+                visibility[`element_${element.id}`] = false;
+              }
+            }
+          }
+
+          // If hiding a page, also hide its elements
+          if (condition.targetType === 'page' && !shouldBeVisible) {
+            const pageId = condition.targetId;
+            const page = pages.find(p => p.id === pageId);
+
+            if (page) {
+              // Hide all elements in this page
+              for (const element of page.elements || []) {
+                visibility[`element_${element.id}`] = false;
+              }
+            }
+          }
+        } catch (error) {
+          console.error(`Error evaluating condition ${condition.id}:`, error);
+          // On error, keep default visibility
         }
-
-        // Apply the condition result
-        if (condition.target_id && condition.target_type) {
-          const targetKey = `${
-            condition.target_type
-          }_${condition.target_id.toString()}`;
-          visibility[targetKey] =
-            condition.action === "show" ? conditionMet : !conditionMet;
-        }
-      } catch (error) {
-        console.error("Condition evaluation error:", error);
       }
     }
 

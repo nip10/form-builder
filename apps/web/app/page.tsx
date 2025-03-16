@@ -25,22 +25,13 @@ import { PlusCircle, Trash2, Loader2 } from "lucide-react";
 import { FormBuilderProvider } from "@/contexts/FormBuilderContext";
 import FormBuilder from "@/components/FormBuilder";
 import { toast, Toaster } from "sonner";
-
-interface Form {
-  _id: string;
-  title: string;
-  description: string;
-  created_at: string;
-  updated_at: string;
-  active: boolean;
-  version: number;
-}
+import { Form } from "@repo/database/src/schema";
 
 export default function HomePage() {
   const [forms, setForms] = useState<Form[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedFormId, setSelectedFormId] = useState<string | null>(null);
+  const [selectedFormId, setSelectedFormId] = useState<number | null>(null);
   const [newFormTitle, setNewFormTitle] = useState("");
   const [isCreatingForm, setIsCreatingForm] = useState(false);
 
@@ -97,7 +88,7 @@ export default function HomePage() {
         throw new Error("Failed to create form");
       }
 
-      const data = await response.json();
+      const data = await response.json() as { form: Form };
 
       toast.success("Form created successfully");
 
@@ -105,7 +96,7 @@ export default function HomePage() {
       setForms([...forms, data.form]);
 
       // Select the new form
-      setSelectedFormId(data.form._id);
+      setSelectedFormId(data.form.id);
 
       // Reset form
       setNewFormTitle("");
@@ -117,7 +108,7 @@ export default function HomePage() {
     }
   };
 
-  const handleDeleteForm = async (formId: string) => {
+  const handleDeleteForm = async (formId: number) => {
     if (
       confirm(
         "Are you sure you want to delete this form? This action cannot be undone."
@@ -135,7 +126,7 @@ export default function HomePage() {
         toast.success("Form deleted successfully");
 
         // Remove the deleted form from the list
-        setForms(forms.filter((form) => form._id !== formId));
+        setForms(forms.filter((form) => form.id !== formId));
 
         // If the deleted form was selected, unselect it
         if (selectedFormId === formId) {
@@ -228,17 +219,17 @@ export default function HomePage() {
                 <div className="space-y-2">
                   {forms.map((form) => (
                     <div
-                      key={form._id}
+                      key={form.id}
                       className={`p-3 rounded flex justify-between items-center cursor-pointer hover:bg-gray-100 ${
-                        selectedFormId === form._id ? "bg-gray-100" : ""
+                        selectedFormId === form.id ? "bg-gray-100" : ""
                       }`}
-                      onClick={() => setSelectedFormId(form._id)}
+                      onClick={() => setSelectedFormId(form.id)}
                     >
                       <div>
                         <h3 className="font-medium">{form.title}</h3>
                         <p className="text-xs text-gray-500">
                           Last updated:{" "}
-                          {new Date(form.updated_at).toLocaleDateString()}
+                          {new Date(form.updatedAt).toLocaleDateString()}
                         </p>
                       </div>
                       <Button
@@ -246,7 +237,7 @@ export default function HomePage() {
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleDeleteForm(form._id);
+                          handleDeleteForm(form.id);
                         }}
                       >
                         <Trash2 className="h-4 w-4" />

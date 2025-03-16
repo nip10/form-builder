@@ -29,9 +29,19 @@ import { Textarea } from "@repo/ui/components/ui/textarea";
 import { PlusCircle, Edit, Trash2, MoveUp, MoveDown } from "lucide-react";
 import { toast } from "sonner";
 import ElementsList from "./ElementsList";
+import { ElementInstance, ElementTemplate, PageInstance, PageTemplate } from "@repo/database/src/schema";
+
+// Define the extended page type with template
+type PageWithTemplate = PageInstance & {
+  template?: PageTemplate;
+  elements?: (ElementInstance & { template?: ElementTemplate })[];
+};
 
 interface PagesListProps {
-  form: FormWithValidations;
+  form: {
+    id: number;
+    pages: PageWithTemplate[];
+  };
 }
 
 const PagesList: React.FC<PagesListProps> = ({ form }) => {
@@ -39,13 +49,13 @@ const PagesList: React.FC<PagesListProps> = ({ form }) => {
 
   const [newPageDialogOpen, setNewPageDialogOpen] = useState(false);
   const [editPageDialogOpen, setEditPageDialogOpen] = useState(false);
-  const [currentPage, setCurrentPage] = useState<PageWithElements | null>(null);
+  const [currentPage, setCurrentPage] = useState<PageWithTemplate | null>(null);
   const [newPageTitle, setNewPageTitle] = useState("");
   const [newPageDescription, setNewPageDescription] = useState("");
 
   // Sort pages by order
   const sortedPages =
-    form.pages?.toSorted((a, b) => (a.order || 0) - (b.order || 0)) || [];
+    form.pages ? [...form.pages].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0)) : [];
 
   const handleAddPage = async () => {
     if (!newPageTitle.trim()) {
@@ -73,9 +83,9 @@ const PagesList: React.FC<PagesListProps> = ({ form }) => {
       return;
     }
 
-    const success = await updatePage(currentPage._id.toString(), {
-      title: newPageTitle,
-      description: newPageDescription,
+    const success = await updatePage(currentPage.id, {
+      titleOverride: newPageTitle,
+      descriptionOverride: newPageDescription,
     });
 
     if (success) {
@@ -87,7 +97,7 @@ const PagesList: React.FC<PagesListProps> = ({ form }) => {
     }
   };
 
-  const handleDeletePage = async (pageId: string) => {
+  const handleDeletePage = async (pageId: number) => {
     if (
       confirm(
         "Are you sure you want to delete this page? This action cannot be undone."
@@ -103,19 +113,19 @@ const PagesList: React.FC<PagesListProps> = ({ form }) => {
     }
   };
 
-  const handleMovePageUp = async (page: PageWithElements) => {
-    if ((page.order || 0) <= 1) return;
+  const handleMovePageUp = async (page: PageWithTemplate) => {
+    if ((page.orderIndex || 0) <= 1) return;
 
     const pageToSwap = sortedPages.find(
-      (p) => (p.order || 0) === (page.order || 0) - 1
+      (p: PageWithTemplate) => (p.orderIndex || 0) === (page.orderIndex || 0) - 1
     );
     if (!pageToSwap) return;
 
-    const success1 = await updatePage(page._id.toString(), {
-      order: (page.order || 0) - 1,
+    const success1 = await updatePage(page.id, {
+      orderIndex: (page.orderIndex || 0) - 1,
     });
-    const success2 = await updatePage(pageToSwap._id.toString(), {
-      order: (pageToSwap.order || 0) + 1,
+    const success2 = await updatePage(pageToSwap.id, {
+      orderIndex: (pageToSwap.orderIndex || 0) + 1,
     });
 
     if (success1 && success2) {
@@ -125,19 +135,19 @@ const PagesList: React.FC<PagesListProps> = ({ form }) => {
     }
   };
 
-  const handleMovePageDown = async (page: PageWithElements) => {
-    if ((page.order || 0) >= sortedPages.length) return;
+  const handleMovePageDown = async (page: PageWithTemplate) => {
+    if ((page.orderIndex || 0) >= sortedPages.length) return;
 
     const pageToSwap = sortedPages.find(
-      (p) => (p.order || 0) === (page.order || 0) + 1
+      (p: PageWithTemplate) => (p.orderIndex || 0) === (page.orderIndex || 0) + 1
     );
     if (!pageToSwap) return;
 
-    const success1 = await updatePage(page._id.toString(), {
-      order: (page.order || 0) + 1,
+    const success1 = await updatePage(page.id, {
+      orderIndex: (page.orderIndex || 0) + 1,
     });
-    const success2 = await updatePage(pageToSwap._id.toString(), {
-      order: (pageToSwap.order || 0) - 1,
+    const success2 = await updatePage(pageToSwap.id, {
+      orderIndex: (pageToSwap.orderIndex || 0) - 1,
     });
 
     if (success1 && success2) {
@@ -147,10 +157,10 @@ const PagesList: React.FC<PagesListProps> = ({ form }) => {
     }
   };
 
-  const openEditPageDialog = (page: PageWithElements) => {
-    setCurrentPage(page as any);
-    setNewPageTitle(page.title);
-    setNewPageDescription(page.description || "");
+  const openEditPageDialog = (page: PageWithTemplate) => {
+    setCurrentPage(page);
+    setNewPageTitle(page.titleOverride || "");
+    setNewPageDescription(page.descriptionOverride || "");
     setEditPageDialogOpen(true);
   };
 
@@ -254,15 +264,15 @@ const PagesList: React.FC<PagesListProps> = ({ form }) => {
 
       <Accordion
         type="multiple"
-        defaultValue={sortedPages.map((page) => page._id.toString())}
+        defaultValue={sortedPages.map((page: PageWithTemplate) => page.id.toString())}
       >
-        {sortedPages.map((page) => (
-          <AccordionItem key={page._id.toString()} value={page._id.toString()}>
+        {sortedPages.map((page: PageWithTemplate) => (
+          <AccordionItem key={page.id.toString()} value={page.id.toString()}>
             <AccordionTrigger>
               <div className="flex items-center justify-between w-full mr-4">
                 <div className="flex items-center">
-                  <span className="font-medium">{page.title}</span>
-                  {!page.active && (
+                  <span className="font-medium">{page.titleOverride || "Untitled"}</span>
+                  {page.propertiesOverride?.active === false && (
                     <span className="ml-2 px-2 py-0.5 text-xs rounded bg-yellow-100 text-yellow-800">
                       Inactive
                     </span>
@@ -277,7 +287,7 @@ const PagesList: React.FC<PagesListProps> = ({ form }) => {
                     variant="ghost"
                     size="sm"
                     onClick={() => handleMovePageUp(page)}
-                    disabled={(page.order || 0) <= 1}
+                    disabled={(page.orderIndex || 0) <= 1}
                   >
                     <MoveUp className="h-4 w-4" />
                   </Button>
@@ -285,7 +295,7 @@ const PagesList: React.FC<PagesListProps> = ({ form }) => {
                     variant="ghost"
                     size="sm"
                     onClick={() => handleMovePageDown(page)}
-                    disabled={(page.order || 0) >= sortedPages.length}
+                    disabled={(page.orderIndex || 0) >= sortedPages.length}
                   >
                     <MoveDown className="h-4 w-4" />
                   </Button>
@@ -299,7 +309,7 @@ const PagesList: React.FC<PagesListProps> = ({ form }) => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleDeletePage(page._id.toString())}
+                    onClick={() => handleDeletePage(page.id)}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -310,13 +320,13 @@ const PagesList: React.FC<PagesListProps> = ({ form }) => {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base">Page Elements</CardTitle>
-                  {page.description && (
-                    <CardDescription>{page.description}</CardDescription>
+                  {page.descriptionOverride && (
+                    <CardDescription>{page.descriptionOverride}</CardDescription>
                   )}
                 </CardHeader>
                 <CardContent>
                   <ElementsList
-                    pageId={page._id.toString()}
+                    pageId={page.id}
                     elements={page.elements || []}
                   />
                 </CardContent>

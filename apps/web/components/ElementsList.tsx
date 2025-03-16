@@ -22,11 +22,11 @@ import { Label } from "@repo/ui/components/ui/label";
 import { Switch } from "@repo/ui/components/ui/switch";
 import { PlusCircle, Edit, Trash2, MoveUp, MoveDown } from "lucide-react";
 import { toast } from "sonner";
-import { ElementDocument } from "@repo/database/src/schema";
+import { ElementInstance, ElementTemplate } from "@repo/database/src/schema";
 
 interface ElementsListProps {
-  pageId: string;
-  elements: ElementDocument[];
+  pageId: number;
+  elements: (ElementInstance & { template?: ElementTemplate })[];
 }
 
 // Define the type for element properties to avoid type errors
@@ -40,7 +40,7 @@ const ElementsList: React.FC<ElementsListProps> = ({ pageId, elements }) => {
 
   const [newElementDialogOpen, setNewElementDialogOpen] = useState(false);
   const [editElementDialogOpen, setEditElementDialogOpen] = useState(false);
-  const [currentElement, setCurrentElement] = useState<ElementDocument | null>(
+  const [currentElement, setCurrentElement] = useState<(ElementInstance & { template?: ElementTemplate }) | null>(
     null
   );
 
@@ -53,8 +53,8 @@ const ElementsList: React.FC<ElementsListProps> = ({ pageId, elements }) => {
   // Sort elements by order
   const sortedElements = [...elements].sort(
     (a, b) =>
-      (a.order ?? Number.MAX_SAFE_INTEGER) -
-      (b.order ?? Number.MAX_SAFE_INTEGER)
+      (a.orderIndex ?? Number.MAX_SAFE_INTEGER) -
+      (b.orderIndex ?? Number.MAX_SAFE_INTEGER)
   );
 
   const resetElementForm = () => {
@@ -98,13 +98,13 @@ const ElementsList: React.FC<ElementsListProps> = ({ pageId, elements }) => {
 
     const success = await updateElement(
       pageId,
-      currentElement._id?.toString() ?? "",
+      currentElement.id,
       {
         type: elementType,
         label: elementLabel,
         required: elementRequired,
         properties: {
-          ...((currentElement.properties as ElementProperties) || {}),
+          ...((currentElement.template?.properties as ElementProperties) || {}),
           placeholder: elementPlaceholder,
         },
       } as any
@@ -120,7 +120,7 @@ const ElementsList: React.FC<ElementsListProps> = ({ pageId, elements }) => {
     }
   };
 
-  const handleDeleteElement = async (elementId: string) => {
+  const handleDeleteElement = async (elementId: number) => {
     if (
       confirm(
         "Are you sure you want to delete this element? This action cannot be undone."
@@ -136,27 +136,27 @@ const ElementsList: React.FC<ElementsListProps> = ({ pageId, elements }) => {
     }
   };
 
-  const handleMoveElementUp = async (element: ElementDocument) => {
-    if ((element.order ?? 0) <= 1) return;
+  const handleMoveElementUp = async (element: ElementInstance & { template?: ElementTemplate }) => {
+    if ((element.orderIndex ?? 0) <= 1) return;
 
     const elementToSwap = sortedElements.find(
-      (e) => (e.order ?? 0) === (element.order ?? 0) - 1
+      (e) => (e.orderIndex ?? 0) === (element.orderIndex ?? 0) - 1
     );
     if (!elementToSwap) return;
 
     const success1 = await updateElement(
       pageId,
-      element._id?.toString() ?? "",
+      element.id,
       {
-        order: (element.order ?? 0) - 1,
+        orderIndex: (element.orderIndex ?? 0) - 1,
       } as any
     );
 
     const success2 = await updateElement(
       pageId,
-      elementToSwap._id?.toString() ?? "",
+      elementToSwap.id,
       {
-        order: (elementToSwap.order ?? 0) + 1,
+        orderIndex: (elementToSwap.orderIndex ?? 0) + 1,
       } as any
     );
 
@@ -167,27 +167,27 @@ const ElementsList: React.FC<ElementsListProps> = ({ pageId, elements }) => {
     }
   };
 
-  const handleMoveElementDown = async (element: ElementDocument) => {
-    if ((element.order ?? 0) >= sortedElements.length) return;
+  const handleMoveElementDown = async (element: ElementInstance & { template?: ElementTemplate }) => {
+    if ((element.orderIndex ?? 0) >= sortedElements.length) return;
 
     const elementToSwap = sortedElements.find(
-      (e) => (e.order ?? 0) === (element.order ?? 0) + 1
+      (e) => (e.orderIndex ?? 0) === (element.orderIndex ?? 0) + 1
     );
     if (!elementToSwap) return;
 
     const success1 = await updateElement(
       pageId,
-      element._id?.toString() ?? "",
+      element.id,
       {
-        order: (element.order ?? 0) + 1,
+        orderIndex: (element.orderIndex ?? 0) + 1,
       } as any
     );
 
     const success2 = await updateElement(
       pageId,
-      elementToSwap._id?.toString() ?? "",
+      elementToSwap.id,
       {
-        order: (elementToSwap.order ?? 0) - 1,
+        orderIndex: (elementToSwap.orderIndex ?? 0) - 1,
       } as any
     );
 
@@ -198,14 +198,14 @@ const ElementsList: React.FC<ElementsListProps> = ({ pageId, elements }) => {
     }
   };
 
-  const openEditElementDialog = (element: ElementDocument) => {
+  const openEditElementDialog = (element: ElementInstance & { template?: ElementTemplate }) => {
     setCurrentElement(element);
-    setElementType(element.type ?? "text_input");
-    setElementLabel(element.label ?? "");
+    setElementType(element.template?.type ?? "text_input");
+    setElementLabel(element.labelOverride || element.template?.label || "");
     setElementRequired(element.required);
 
     // Fix the placeholder property access
-    const properties = (element.properties as ElementProperties) || {};
+    const properties = (element.template?.properties as ElementProperties) || {};
     setElementPlaceholder(properties.placeholder || "");
 
     setEditElementDialogOpen(true);
@@ -424,20 +424,20 @@ const ElementsList: React.FC<ElementsListProps> = ({ pageId, elements }) => {
       ) : (
         <div className="space-y-4">
           {sortedElements.map((element) => (
-            <Card key={element._id?.toString() ?? "unknown"}>
+            <Card key={element.id?.toString() ?? "unknown"}>
               <CardContent className="p-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start space-x-3">
                     <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-gray-100 rounded-md font-mono text-sm">
-                      {getElementTypeIcon(element.type)}
+                      {getElementTypeIcon(element.template?.type)}
                     </div>
                     <div>
                       <h4 className="font-medium">
-                        {element.label || "Untitled"}
+                        {element.labelOverride || element.template?.label || "Untitled"}
                       </h4>
                       <p className="text-sm text-gray-500">
-                        {element.type
-                          ? element.type.replace("_", " ")
+                        {element.template?.type
+                          ? element.template.type.replace("_", " ")
                           : "Unknown type"}
                         {element.required && " • Required"}
                       </p>
@@ -449,7 +449,7 @@ const ElementsList: React.FC<ElementsListProps> = ({ pageId, elements }) => {
                       variant="ghost"
                       size="sm"
                       onClick={() => handleMoveElementUp(element)}
-                      disabled={(element.order ?? 0) <= 1}
+                      disabled={(element.orderIndex ?? 0) <= 1}
                     >
                       <MoveUp className="h-4 w-4" />
                     </Button>
@@ -457,7 +457,7 @@ const ElementsList: React.FC<ElementsListProps> = ({ pageId, elements }) => {
                       variant="ghost"
                       size="sm"
                       onClick={() => handleMoveElementDown(element)}
-                      disabled={(element.order ?? 0) >= sortedElements.length}
+                      disabled={(element.orderIndex ?? 0) >= sortedElements.length}
                     >
                       <MoveDown className="h-4 w-4" />
                     </Button>
@@ -472,7 +472,7 @@ const ElementsList: React.FC<ElementsListProps> = ({ pageId, elements }) => {
                       variant="ghost"
                       size="sm"
                       onClick={() =>
-                        handleDeleteElement(element._id?.toString() ?? "")
+                        handleDeleteElement(element.id)
                       }
                     >
                       <Trash2 className="h-4 w-4" />

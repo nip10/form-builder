@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { ElementDocument } from "@repo/database/src/schema";
+import { ElementInstance, ElementTemplate, Form, PageInstance } from "@repo/database/src/schema";
 import { Input } from "@repo/ui/components/ui/input";
 import { Label } from "@repo/ui/components/ui/label";
 import { Textarea } from "@repo/ui/components/ui/textarea";
@@ -23,6 +23,35 @@ import {
 import { Button } from "@repo/ui/components/ui/button";
 import { validatePageBasic } from "@/lib/client-validation";
 
+// Define missing types
+interface FormWithValidations extends Form {
+  pages: (PageInstance & {
+    elements?: (ElementInstance & { template?: ElementTemplate })[];
+  })[];
+  validations?: any[];
+  conditions?: any[];
+}
+
+type PageWithElements = PageInstance & {
+  elements?: (ElementInstance & { template?: ElementTemplate })[];
+};
+
+interface ValidationResult {
+  valid: boolean;
+  errors: Array<{ elementId?: string; message: string }>;
+}
+
+// Helper function to get element properties
+const getElementProperty = (element: ElementInstance & { template?: ElementTemplate }, key: string, defaultValue?: any) => {
+  const properties = element.template?.properties || {};
+  const propertiesOverride = element.propertiesOverride || {};
+  return (propertiesOverride as any)[key] !== undefined
+    ? (propertiesOverride as any)[key]
+    : (properties as any)[key] !== undefined
+      ? (properties as any)[key]
+      : defaultValue;
+};
+
 // Remove all the duplicate type definitions
 interface FormRendererProps {
   form: FormWithValidations;
@@ -31,7 +60,7 @@ interface FormRendererProps {
 }
 
 interface FormElementProps {
-  element: ElementDocument;
+  element: ElementInstance & { template?: ElementTemplate };
   value: any;
   onChange: (value: any) => void;
   error?: string;
@@ -43,22 +72,25 @@ const FormElement: React.FC<FormElementProps> = ({
   onChange,
   error,
 }) => {
-  switch (element.type) {
+  const type = element.template?.type || '';
+  const label = element.labelOverride || element.template?.label || '';
+
+  switch (type) {
     case "text_input":
       return (
         <div className="grid gap-2">
           <Label
-            htmlFor={element._id.toString()}
+            htmlFor={element.id.toString()}
             className={
               element.required
                 ? 'after:content-["*"] after:ml-0.5 after:text-red-500'
                 : ""
             }
           >
-            {element.label}
+            {label}
           </Label>
           <Input
-            id={element._id.toString()}
+            id={element.id.toString()}
             value={value || ""}
             onChange={(e) => onChange(e.target.value)}
             placeholder={getElementProperty(element, "placeholder", "")}
@@ -71,17 +103,17 @@ const FormElement: React.FC<FormElementProps> = ({
       return (
         <div className="grid gap-2">
           <Label
-            htmlFor={element._id.toString()}
+            htmlFor={element.id.toString()}
             className={
               element.required
                 ? 'after:content-["*"] after:ml-0.5 after:text-red-500'
                 : ""
             }
           >
-            {element.label}
+            {label}
           </Label>
           <Input
-            id={element._id.toString()}
+            id={element.id.toString()}
             type="number"
             value={value || ""}
             onChange={(e) => onChange(e.target.valueAsNumber || null)}
@@ -98,17 +130,17 @@ const FormElement: React.FC<FormElementProps> = ({
       return (
         <div className="grid gap-2">
           <Label
-            htmlFor={element._id.toString()}
+            htmlFor={element.id.toString()}
             className={
               element.required
                 ? 'after:content-["*"] after:ml-0.5 after:text-red-500'
                 : ""
             }
           >
-            {element.label}
+            {label}
           </Label>
           <Input
-            id={element._id.toString()}
+            id={element.id.toString()}
             type="email"
             value={value || ""}
             onChange={(e) => onChange(e.target.value)}
@@ -122,17 +154,17 @@ const FormElement: React.FC<FormElementProps> = ({
       return (
         <div className="grid gap-2">
           <Label
-            htmlFor={element._id.toString()}
+            htmlFor={element.id.toString()}
             className={
               element.required
                 ? 'after:content-["*"] after:ml-0.5 after:text-red-500'
                 : ""
             }
           >
-            {element.label}
+            {label}
           </Label>
           <Textarea
-            id={element._id.toString()}
+            id={element.id.toString()}
             value={value || ""}
             onChange={(e) => onChange(e.target.value)}
             placeholder={getElementProperty(element, "placeholder", "")}
@@ -146,20 +178,20 @@ const FormElement: React.FC<FormElementProps> = ({
       return (
         <div className="flex items-start space-x-2">
           <Checkbox
-            id={element._id.toString()}
+            id={element.id.toString()}
             checked={!!value}
             onCheckedChange={onChange}
           />
           <div className="grid gap-1.5 leading-none">
             <Label
-              htmlFor={element._id.toString()}
+              htmlFor={element.id.toString()}
               className={
                 element.required
                   ? 'after:content-["*"] after:ml-0.5 after:text-red-500'
                   : ""
               }
             >
-              {element.label}
+              {label}
             </Label>
             {error && <p className="text-sm text-red-500">{error}</p>}
           </div>
@@ -177,13 +209,13 @@ const FormElement: React.FC<FormElementProps> = ({
                 : ""
             }
           >
-            {element.label}
+            {label}
           </Label>
           <RadioGroup value={value || ""} onValueChange={onChange}>
             {options.map((option: string, index: number) => (
               <div key={index} className="flex items-center space-x-2">
-                <RadioGroupItem value={option} id={`${element._id}-${index}`} />
-                <Label htmlFor={`${element._id}-${index}`}>{option}</Label>
+                <RadioGroupItem value={option} id={`${element.id}-${index}`} />
+                <Label htmlFor={`${element.id}-${index}`}>{option}</Label>
               </div>
             ))}
           </RadioGroup>
@@ -196,17 +228,17 @@ const FormElement: React.FC<FormElementProps> = ({
       return (
         <div className="grid gap-2">
           <Label
-            htmlFor={element._id.toString()}
+            htmlFor={element.id.toString()}
             className={
               element.required
                 ? 'after:content-["*"] after:ml-0.5 after:text-red-500'
                 : ""
             }
           >
-            {element.label}
+            {label}
           </Label>
           <Select value={value || ""} onValueChange={onChange}>
-            <SelectTrigger id={element._id.toString()}>
+            <SelectTrigger id={element.id.toString()}>
               <SelectValue
                 placeholder={getElementProperty(
                   element,
@@ -231,17 +263,17 @@ const FormElement: React.FC<FormElementProps> = ({
       return (
         <div className="grid gap-2">
           <Label
-            htmlFor={element._id.toString()}
+            htmlFor={element.id.toString()}
             className={
               element.required
                 ? 'after:content-["*"] after:ml-0.5 after:text-red-500'
                 : ""
             }
           >
-            {element.label}
+            {label}
           </Label>
           <Input
-            id={element._id.toString()}
+            id={element.id.toString()}
             type="date"
             value={value || ""}
             onChange={(e) => onChange(e.target.value)}
@@ -253,8 +285,8 @@ const FormElement: React.FC<FormElementProps> = ({
     case "text":
       return (
         <div className="space-y-1">
-          {element.label && (
-            <h3 className="text-lg font-medium">{element.label}</h3>
+          {label && (
+            <h3 className="text-lg font-medium">{label}</h3>
           )}
           <div
             className="text-sm text-gray-700"
@@ -268,8 +300,8 @@ const FormElement: React.FC<FormElementProps> = ({
     case "image":
       return (
         <div className="space-y-2">
-          {element.label && (
-            <h3 className="text-lg font-medium">{element.label}</h3>
+          {label && (
+            <h3 className="text-lg font-medium">{label}</h3>
           )}
           <div className="overflow-hidden rounded-md">
             <img
@@ -281,7 +313,7 @@ const FormElement: React.FC<FormElementProps> = ({
               alt={getElementProperty(
                 element,
                 "alt",
-                element.label || "Form image"
+                label || "Form image"
               )}
               className="w-full object-cover"
             />
@@ -295,7 +327,7 @@ const FormElement: React.FC<FormElementProps> = ({
       );
 
     default:
-      return <div>Unsupported element type: {element.type}</div>;
+      return <div>Unsupported element type: {type}</div>;
   }
 };
 
@@ -329,7 +361,7 @@ const FormRenderer: React.FC<FormRendererProps> = ({ form, onSubmit }) => {
       typedForm.pages?.forEach((page: any) => {
         page.elements?.forEach((element: any) => {
           if (element.default_value !== undefined) {
-            defaults[element._id.toString()] = element.default_value;
+            defaults[element.id.toString()] = element.default_value;
           }
         });
       });
@@ -353,14 +385,14 @@ const FormRenderer: React.FC<FormRendererProps> = ({ form, onSubmit }) => {
       // Set default visibility (all visible)
       if (typedForm?.pages) {
         typedForm.pages.forEach((page: any) => {
-          if (page._id) {
-            newVisibility[`page_${page._id.toString()}`] = true;
+          if (page.id) {
+            newVisibility[`page_${page.id.toString()}`] = true;
           }
 
           if (page.elements) {
             page.elements.forEach((element: any) => {
-              if (element._id) {
-                newVisibility[`element_${element._id.toString()}`] = true;
+              if (element.id) {
+                newVisibility[`element_${element.id.toString()}`] = true;
               }
             });
           }
@@ -443,7 +475,7 @@ const FormRenderer: React.FC<FormRendererProps> = ({ form, onSubmit }) => {
 
       // Update validation errors
       const newErrors: Record<string, string> = {};
-      result.errors.forEach((error) => {
+      result.errors.forEach((error: any) => {
         if (error.elementId) {
           newErrors[error.elementId] = error.message;
         }
@@ -521,13 +553,13 @@ const FormRenderer: React.FC<FormRendererProps> = ({ form, onSubmit }) => {
     }
   };
 
-  const isElementVisible = (element: ElementDocument) => {
-    const elementKey = `element_${element._id.toString()}`;
+  const isElementVisible = (element: ElementInstance & { template?: ElementTemplate }) => {
+    const elementKey = `element_${element.id.toString()}`;
     return visibility[elementKey] !== false; // Default to visible if not specified
   };
 
   const isPageVisible = (page: PageWithElements) => {
-    const pageKey = `page_${page._id.toString()}`;
+    const pageKey = `page_${page.id.toString()}`;
     return visibility[pageKey] !== false; // Default to visible if not specified
   };
 
@@ -613,13 +645,13 @@ const FormRenderer: React.FC<FormRendererProps> = ({ form, onSubmit }) => {
             <div className="space-y-6">
               {visibleElements.map((element: any) => (
                 <FormElement
-                  key={element._id.toString()}
+                  key={element.id.toString()}
                   element={element}
-                  value={formData[element._id.toString()]}
+                  value={formData[element.id.toString()]}
                   onChange={(value) =>
-                    handleElementChange(element._id.toString(), value)
+                    handleElementChange(element.id.toString(), value)
                   }
-                  error={validationErrors[element._id.toString()]}
+                  error={validationErrors[element.id.toString()]}
                 />
               ))}
             </div>

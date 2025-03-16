@@ -1,22 +1,17 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
-import FormRenderer from "@/components/FormRenderer";
-import { Card, CardContent } from "@repo/ui/components/ui/card";
-import { Button } from "@repo/ui/components/ui/button";
-import { Loader2, AlertCircle, CheckCircle } from "lucide-react";
+import { useParams } from "next/navigation";
+import { Loader2, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@repo/ui/components/ui/alert";
-import { FormWithValidations } from "@repo/database/src/schema";
+import FormViewer from "./components/form-viewer";
+import { FormWithRelations } from "@/lib/repositories/form-repository";
 
 const FormViewPage = () => {
-  const router = useRouter();
   const { formId } = useParams();
-
-  const [form, setForm] = useState<FormWithValidations | null>(null);
+  const [form, setForm] = useState<FormWithRelations | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
     const fetchForm = async () => {
@@ -33,8 +28,8 @@ const FormViewPage = () => {
           throw new Error("Failed to load form");
         }
 
-        const data = await response.json();
-        setForm(data.form as FormWithValidations);
+        const data = await response.json() as { form: FormWithRelations };
+        setForm(data.form);
       } catch (err: any) {
         setError(err.message || "Error loading form");
         console.error("Error loading form:", err);
@@ -45,39 +40,6 @@ const FormViewPage = () => {
 
     fetchForm();
   }, [formId]);
-
-  const handleSubmit = async (data: Record<string, any>) => {
-    try {
-      setError(null);
-
-      const response = await fetch(`/api/forms/${formId}/submissions`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          data,
-          completed: true,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-
-        if (errorData.validationErrors) {
-          // Handle validation errors
-          throw new Error("Please fix the validation errors and try again");
-        }
-
-        throw new Error("Failed to submit form");
-      }
-
-      setSubmitted(true);
-    } catch (err: any) {
-      setError(err.message || "Error submitting form");
-      console.error("Error submitting form:", err);
-    }
-  };
 
   if (loading) {
     return (
@@ -110,27 +72,14 @@ const FormViewPage = () => {
     );
   }
 
-  if (submitted) {
-    return (
-      <Card className="max-w-2xl mx-auto my-8">
-        <CardContent className="pt-6">
-          <div className="flex flex-col items-center justify-center p-6 text-center">
-            <CheckCircle className="h-12 w-12 text-green-500 mb-4" />
-            <h2 className="text-2xl font-bold mb-2">Form Submitted</h2>
-            <p className="text-gray-600 mb-6">
-              Thank you for your submission. Your response has been recorded.
-            </p>
-            <Button onClick={() => router.push("/")}>Return Home</Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
-    <div className="container py-8">
-      <FormRenderer form={form} onSubmit={handleSubmit} />
-    </div>
+    <main className="h-screen flex flex-col">
+      <div className="border-b p-4">
+        <h1 className="text-2xl font-bold">{form.title}</h1>
+        <p className="text-muted-foreground">{form.description}</p>
+      </div>
+      <FormViewer formData={form} />
+    </main>
   );
 };
 

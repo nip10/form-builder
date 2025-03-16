@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { FormRepository } from "@/lib/repositories/form-repository";
+import { z } from "zod";
 
 const formRepository = new FormRepository();
+
+// Zod schema for form creation
+const createFormSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  description: z.string().optional().default(""),
+  owner_id: z.string().optional().nullable()
+});
 
 // GET /api/forms - Get all forms
 export async function GET(): Promise<NextResponse> {
@@ -21,18 +29,27 @@ export async function GET(): Promise<NextResponse> {
 // POST /api/forms - Create a new form
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    const data = await request.json();
+    // Parse and validate the request body
+    const requestData = await request.json();
+    const formResult = createFormSchema.safeParse(requestData);
 
-    // Basic validation
-    if (!data.title) {
-      return NextResponse.json({ error: "Title is required" }, { status: 400 });
+    if (!formResult.success) {
+      return NextResponse.json(
+        {
+          error: "Invalid form data",
+          details: formResult.error.format()
+        },
+        { status: 400 }
+      );
     }
+
+    const data = formResult.data;
 
     // Create a new form
     const form = await formRepository.createForm({
       title: data.title,
-      description: data.description || "",
-      createdBy: data.owner_id || null
+      description: data.description,
+      createdBy: data.owner_id
     });
 
     return NextResponse.json({ form }, { status: 201 });

@@ -13,21 +13,22 @@ import {
   ElementInstance,
   NewElementInstance,
   FormValidationTable,
-  ConditionTable
+  ConditionTable,
+  Condition,
+  ElementTemplate,
+  FormValidation
 } from '@repo/database/src/schema';
 import { eq, desc, inArray } from 'drizzle-orm';
 
-// Define a type for a form with all its relations
-export type FormWithRelations = Form & {
-  pages: (PageInstance & {
-    elements: ElementInstance[];
-  })[];
+export interface FormWithRelations extends Form {
   groups: (GroupInstance & {
-    pages: PageInstance[];
+    pages: (PageInstance & {
+      elements?: (ElementInstance & { template?: ElementTemplate })[];
+    })[];
   })[];
-  formValidations: any[];
-  conditions: any[];
-};
+  validations?: FormValidation[];
+  conditions?: Condition[];
+}
 
 export class FormRepository {
   // Form operations
@@ -106,24 +107,17 @@ export class FormRepository {
     // Return the form with all its relations
     return {
       ...form,
-      pages: pagesWithElements,
       groups: groupsWithPages,
-      formValidations: validations,
-      conditions: conditions
+      validations,
+      conditions
     };
   }
 
-  async createForm(data: Partial<NewForm>): Promise<Form> {
+  async createForm(data: Pick<NewForm, 'title' | 'description'>): Promise<Form> {
     const [form] = await db.insert(FormTable)
       .values({
         title: data.title || 'Untitled Form',
         description: data.description,
-        status: 'draft',
-        currentVersion: 1,
-        forkedFromId: 0, // Default value for required field
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        createdBy: data.createdBy
       })
       .returning();
 
@@ -134,7 +128,7 @@ export class FormRepository {
     return form;
   }
 
-  async updateForm(id: number, data: Partial<NewForm>): Promise<Form | undefined> {
+  async updateForm(id: Form['id'], data: Partial<NewForm>): Promise<Form> {
     const [updated] = await db.update(FormTable)
       .set({
         ...data,
@@ -142,6 +136,10 @@ export class FormRepository {
       })
       .where(eq(FormTable.id, id))
       .returning();
+
+    if (!updated) {
+      throw new Error("Failed to update form");
+    }
 
     return updated;
   }
@@ -155,7 +153,7 @@ export class FormRepository {
   }
 
   // Group operations
-  async createGroup(formId: number, data: Partial<NewGroupInstance>): Promise<GroupInstance> {
+  async createGroup(formId: Form['id'], data: Partial<NewGroupInstance>): Promise<GroupInstance> {
     // Get the count of existing groups to determine order
     const existingGroups = await db.query.GroupInstanceTable.findMany({
       where: eq(GroupInstanceTable.formId, formId)
@@ -166,10 +164,8 @@ export class FormRepository {
         templateId: data.templateId || 1,
         formId: formId,
         orderIndex: data.orderIndex || existingGroups.length + 1,
-        titleOverride: data.titleOverride,
-        descriptionOverride: data.descriptionOverride,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        title: data.title,
+        description: data.description,
       })
       .returning();
 
@@ -181,7 +177,7 @@ export class FormRepository {
   }
 
   // Page operations
-  async createPage(groupId: number, data: Partial<NewPageInstance>): Promise<PageInstance> {
+  async createPage(groupId: GroupInstance['id'], data: Partial<NewPageInstance>): Promise<PageInstance> {
     // Get the count of existing pages to determine order
     const existingPages = await db.query.PageInstanceTable.findMany({
       where: eq(PageInstanceTable.groupInstanceId, groupId)
@@ -192,10 +188,8 @@ export class FormRepository {
         templateId: data.templateId || 1,
         groupInstanceId: groupId,
         orderIndex: data.orderIndex || existingPages.length + 1,
-        titleOverride: data.titleOverride,
-        descriptionOverride: data.descriptionOverride,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        title: data.title,
+        description: data.description,
       })
       .returning();
 
@@ -207,7 +201,7 @@ export class FormRepository {
   }
 
   // Element operations
-  async createElement(pageId: number, data: Partial<NewElementInstance>): Promise<ElementInstance> {
+  async createElement(pageId: PageInstance['id'], data: Partial<NewElementInstance>): Promise<ElementInstance> {
     // Get the count of existing elements to determine order
     const existingElements = await db.query.ElementInstanceTable.findMany({
       where: eq(ElementInstanceTable.pageInstanceId, pageId)
@@ -219,11 +213,9 @@ export class FormRepository {
         pageInstanceId: pageId,
         orderIndex: data.orderIndex || existingElements.length + 1,
         required: data.required || false,
-        labelOverride: data.labelOverride,
-        propertiesOverride: data.propertiesOverride || {},
+        label: data.label,
+        properties: data.properties || {},
         validations: data.validations || [],
-        createdAt: new Date(),
-        updatedAt: new Date()
       })
       .returning();
 

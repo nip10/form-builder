@@ -125,7 +125,7 @@ export const validateElementBasic = (
   ) {
     result.valid = false;
     result.errors.push({
-      elementId: element._id?.toString(),
+      elementId: element.id?.toString(),
       message: "This field is required",
     });
     return result;
@@ -142,7 +142,7 @@ export const validateElementBasic = (
     if (!emailRegex.test(String(value))) {
       result.valid = false;
       result.errors.push({
-        elementId: element._id?.toString(),
+        elementId: element.id?.toString(),
         message: "Please enter a valid email address",
       });
     }
@@ -155,7 +155,7 @@ export const validateElementBasic = (
     if (isNaN(numValue)) {
       result.valid = false;
       result.errors.push({
-        elementId: element._id?.toString(),
+        elementId: element.id?.toString(),
         message: "Please enter a valid number",
       });
     }
@@ -167,7 +167,7 @@ export const validateElementBasic = (
     ) {
       result.valid = false;
       result.errors.push({
-        elementId: element._id?.toString(),
+        elementId: element.id?.toString(),
         message: `Value must be at least ${element.properties.min}`,
       });
     }
@@ -178,7 +178,7 @@ export const validateElementBasic = (
     ) {
       result.valid = false;
       result.errors.push({
-        elementId: element._id?.toString(),
+        elementId: element.id?.toString(),
         message: `Value must be at most ${element.properties.max}`,
       });
     }
@@ -193,7 +193,7 @@ export const validateElementBasic = (
           if (!regex.test(String(value))) {
             result.valid = false;
             result.errors.push({
-              elementId: element._id?.toString(),
+              elementId: element.id?.toString(),
               message: validation.error_message || "Invalid format",
               rule: validation.rule,
             });
@@ -241,7 +241,7 @@ export const validatePageBasic = (
   // Validate each input element on the page
   for (const element of page.elements || []) {
     if (isInputElement(element.type)) {
-      const value = formData[element._id.toString()];
+      const value = formData[element.id.toString()];
       const elementValidation = validateElementBasic(element, value);
 
       if (!elementValidation.valid) {

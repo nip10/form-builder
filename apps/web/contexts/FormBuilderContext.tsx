@@ -5,81 +5,104 @@ import React, {
   useEffect,
   ReactNode,
 } from "react";
-import { ObjectId } from "bson";
 import {
-  PageDocument,
-  GroupDocument,
-  ConditionDocument,
-  FormValidationDocument,
-  ElementDocument,
-  FormDocument,
+  Form,
+  PageInstance,
+  GroupInstance,
+  ElementInstance,
+  ElementTemplate,
+  Condition,
+  FormValidation
 } from "@repo/database/src/schema";
 
+// Define a custom interface for the condition data with sourceElementId
+interface ConditionWithSourceElement extends Condition {
+  sourceElementId?: number;
+}
+
+// Define the FormWithRelations type
+interface FormWithRelations extends Form {
+  groups: (GroupInstance & {
+    pages?: (PageInstance & {
+      elements?: (ElementInstance & {
+        template?: ElementTemplate;
+      })[];
+    })[];
+  })[];
+  pages: (PageInstance & {
+    elements?: (ElementInstance & {
+      template?: ElementTemplate;
+    })[];
+  })[];
+  validations?: FormValidation[];
+  conditions?: Condition[];
+}
+
 interface FormBuilderContextType {
-  form: FormWithValidations | null;
+  form: FormWithRelations | null;
   loading: boolean;
   error: string | null;
 
   // Form methods
-  loadForm: (formId: string | ObjectId) => Promise<void>;
+  loadForm: (formId: number) => Promise<void>;
   createForm: (title: string, ownerId: string) => Promise<string | null>;
   saveForm: () => Promise<boolean>;
 
   // Page methods
   addPage: (title: string, description?: string) => Promise<boolean>;
   updatePage: (
-    pageId: string | ObjectId,
-    updates: Partial<PageDocument>
+    pageId: number,
+    updates: Partial<PageInstance>
   ) => Promise<boolean>;
-  deletePage: (pageId: string | ObjectId) => Promise<boolean>;
+  deletePage: (pageId: number) => Promise<boolean>;
 
   // Element methods
   addElement: (
-    pageId: string | ObjectId,
-    element: Partial<ElementDocument>
-  ) => Promise<ElementDocument | null>;
+    pageId: number,
+    element: Partial<ElementInstance>
+  ) => Promise<ElementInstance | null>;
   updateElement: (
-    pageId: string | ObjectId,
-    elementId: string | ObjectId,
-    updates: Partial<ElementDocument>
+    pageId: number,
+    elementId: number,
+    updates: Partial<ElementInstance>
   ) => Promise<boolean>;
   deleteElement: (
-    pageId: string | ObjectId,
-    elementId: string | ObjectId
+    pageId: number,
+    elementId: number
   ) => Promise<boolean>;
 
   // Group methods
   addGroup: (title: string, description?: string) => Promise<boolean>;
   updateGroup: (
-    groupId: string | ObjectId,
-    updates: Partial<GroupDocument>
+    groupId: number,
+    updates: Partial<GroupInstance>
   ) => Promise<boolean>;
-  deleteGroup: (groupId: string | ObjectId) => Promise<boolean>;
+  deleteGroup: (groupId: number) => Promise<boolean>;
 
   // Condition methods
   addCondition: (conditionData: {
-    source_element_id: string | ObjectId;
-    operator: string;
-    value: any;
-    action: string;
-    target_id: string | ObjectId;
-    target_type: string;
-  }) => Promise<boolean>;
+    name: string;
+    rule: any;
+    action: "show" | "hide";
+    targetType: "element" | "page" | "group";
+    targetId: number;
+    sourceElementId: number;
+  }) => Promise<Condition | null>;
   updateCondition: (
-    conditionId: string,
-    updates: Partial<ConditionDocument>
+    conditionId: number,
+    updates: Partial<ConditionWithSourceElement>
   ) => Promise<boolean>;
-  deleteCondition: (conditionId: string | ObjectId) => Promise<boolean>;
+  deleteCondition: (conditionId: number) => Promise<boolean>;
 
   // Validation methods
   addFormValidation: (
-    validation: Partial<FormValidationDocument>
-  ) => Promise<FormValidationDocument | null>;
+    validation: Partial<FormValidation>
+  ) => Promise<FormValidation | null>;
   updateFormValidation: (
-    validationId: string,
-    updates: Partial<FormValidationDocument>
+    validationId: number,
+    updates: Partial<FormValidation>
   ) => Promise<boolean>;
-  deleteFormValidation: (validationId: string) => Promise<boolean>;
+  deleteFormValidation: (validationId: number) => Promise<boolean>;
 }
 
 const FormBuilderContext = createContext<FormBuilderContextType | undefined>(
@@ -99,12 +122,12 @@ interface FormBuilderProviderProps {
 }
 
 export function FormBuilderProvider({ children }: FormBuilderProviderProps) {
-  const [form, setForm] = useState<FormWithValidations | null>(null);
+  const [form, setForm] = useState<FormWithRelations | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   // Load form from API
-  const loadForm = async (formId: string | ObjectId) => {
+  const loadForm = async (formId: number) => {
     setLoading(true);
     setError(null);
 
@@ -117,7 +140,7 @@ export function FormBuilderProvider({ children }: FormBuilderProviderProps) {
       }
 
       const data = await response.json();
-      setForm(data.form as FormWithValidations);
+      setForm(data.form as FormWithRelations);
     } catch (err: any) {
       setError(err.message || "Failed to load form");
       console.error("Error loading form:", err);
@@ -150,13 +173,13 @@ export function FormBuilderProvider({ children }: FormBuilderProviderProps) {
 
       const data = await response.json();
       // Initialize with empty arrays for populated fields
-      const newForm: FormWithValidations = {
+      const newForm: FormWithRelations = {
         ...data.form,
         pages: [],
         form_validations: [],
       };
       setForm(newForm);
-      return data.form._id;
+      return data.form.id;
     } catch (err: any) {
       setError(err.message || "Failed to create form");
       console.error("Error creating form:", err);
@@ -177,32 +200,24 @@ export function FormBuilderProvider({ children }: FormBuilderProviderProps) {
     setError(null);
 
     try {
-      // Convert the populated form back to a regular FormDocument for saving
-      const formToSave: FormDocument = {
+      // Convert the populated form back to a regular Form for saving
+      const formToSave: Form = {
         ...form,
-        // Convert populated pages back to ObjectIds
-        pages: form.pages.map((page) => page._id) as unknown as ObjectId[],
-        // Convert populated form_validations back to ObjectIds
-        form_validations: form.form_validations.map(
-          (validation) => validation._id
-        ) as unknown as ObjectId[],
-        // Convert populated groups back to ObjectIds if they exist
-        groups: form.groups
-          ? (form.groups.map((group) =>
-              typeof group === "object" && "_id" in group ? group._id : group
-            ) as unknown as ObjectId[])
-          : [],
-        // Convert populated conditions back to ObjectIds if they exist
-        conditions: form.conditions
-          ? (form.conditions.map((condition) =>
-              typeof condition === "object" && "_id" in condition
-                ? condition._id
-                : condition
-            ) as unknown as ObjectId[])
-          : [],
+        // Use the correct property names for the SQL schema
+        id: form.id,
+        title: form.title,
+        description: form.description,
+        status: form.status,
+        currentVersion: form.currentVersion,
+        forkedFromId: form.forkedFromId,
+        forkDate: form.forkDate,
+        createdAt: form.createdAt,
+        updatedAt: new Date(), // Update the timestamp
+        createdBy: form.createdBy,
+        properties: form.properties
       };
 
-      const response = await fetch(`/api/forms/${form._id}`, {
+      const response = await fetch(`/api/forms/${form.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -216,7 +231,7 @@ export function FormBuilderProvider({ children }: FormBuilderProviderProps) {
       }
 
       // Reload the form to get the updated data
-      await loadForm(form._id.toString());
+      await loadForm(form.id);
       return true;
     } catch (err: any) {
       setError(err.message || "Failed to save form");
@@ -241,7 +256,7 @@ export function FormBuilderProvider({ children }: FormBuilderProviderProps) {
     setError(null);
 
     try {
-      const response = await fetch(`/api/forms/${form._id}/pages`, {
+      const response = await fetch(`/api/forms/${form.id}/pages`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -260,7 +275,7 @@ export function FormBuilderProvider({ children }: FormBuilderProviderProps) {
       const pageWithElements = {
         ...newPage,
         elements: [], // Initialize with empty elements array for UI
-      } as PageWithElements; // Type assertion to ensure compatibility
+      };
 
       // Update the form with the new page
       setForm({
@@ -278,49 +293,52 @@ export function FormBuilderProvider({ children }: FormBuilderProviderProps) {
     }
   };
 
+  // Update the updatePage method to handle elements properly
   const updatePage = async (
-    pageId: string | ObjectId,
-    updates: Partial<PageDocument>
+    pageId: number,
+    updates: Partial<PageInstance>
   ): Promise<boolean> => {
-    if (!form) {
-      setError("No form loaded");
-      return false;
-    }
-
     try {
-      const pageIndex = form.pages.findIndex(
-        (p) => p._id.toString() === pageId.toString()
-      );
+      if (!form) return false;
 
-      if (pageIndex === -1) {
-        setError("Page not found");
-        return false;
-      }
+      // Find the page index
+      const pageIndex = form.pages.findIndex((p) => p.id === pageId);
+      if (pageIndex === -1) return false;
 
+      // Create a copy of the pages array
       const updatedPages = [...form.pages];
-      updatedPages[pageIndex] = {
-        ...updatedPages[pageIndex],
-        ...updates,
-        // Ensure elements remains the same array of ElementDocument objects
-        elements: updatedPages[pageIndex].elements,
-      } as PageWithElements;
 
+      // Create a new page object with the updates, preserving the elements
+      const currentPage = updatedPages[pageIndex];
+      if (!currentPage) return false;
+
+      const elements = currentPage.elements || [];
+
+      // Create the updated page with proper typing
+      const updatedPage = {
+        ...currentPage,
+        ...updates,
+        elements // Preserve the elements array
+      };
+
+      updatedPages[pageIndex] = updatedPage;
+
+      // Update the form state
       setForm({
         ...form,
         pages: updatedPages,
-        updated_at: new Date(),
+        updatedAt: new Date(),
       });
 
       return true;
-    } catch (err: any) {
-      setError(err.message || "Failed to update page");
-      console.error("Error updating page:", err);
+    } catch (error) {
+      console.error("Error updating page:", error);
       return false;
     }
   };
 
   // Delete a page
-  const deletePage = async (pageId: string | ObjectId): Promise<boolean> => {
+  const deletePage = async (pageId: number): Promise<boolean> => {
     if (!form) {
       setError("No form to delete page from");
       return false;
@@ -330,7 +348,7 @@ export function FormBuilderProvider({ children }: FormBuilderProviderProps) {
     setError(null);
 
     try {
-      const response = await fetch(`/api/forms/${form._id}/pages/${pageId}`, {
+      const response = await fetch(`/api/forms/${form.id}/pages/${pageId}`, {
         method: "DELETE",
       });
 
@@ -342,7 +360,7 @@ export function FormBuilderProvider({ children }: FormBuilderProviderProps) {
       // Update the form by removing the deleted page
       setForm({
         ...form,
-        pages: form.pages.filter((page) => page._id.toString() !== pageId),
+        pages: form.pages.filter((page) => page.id !== pageId),
       });
 
       return true;
@@ -357,13 +375,13 @@ export function FormBuilderProvider({ children }: FormBuilderProviderProps) {
 
   // Element Methods
   const addElement = async (
-    pageId: string | ObjectId,
-    element: Partial<ElementDocument>
-  ): Promise<ElementDocument | null> => {
+    pageId: number,
+    element: Partial<ElementInstance>
+  ): Promise<ElementInstance | null> => {
     if (!form) return null;
 
     try {
-      const response = await fetch(`/api/forms/${form._id}/elements`, {
+      const response = await fetch(`/api/forms/${form.id}/elements`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -372,7 +390,7 @@ export function FormBuilderProvider({ children }: FormBuilderProviderProps) {
           pageId,
           element: {
             ...element,
-            order: element.order || 0,
+            orderIndex: element.orderIndex || 0,
           },
         }),
       });
@@ -385,7 +403,7 @@ export function FormBuilderProvider({ children }: FormBuilderProviderProps) {
       const data = await response.json();
 
       // Update the form state with the new element
-      await loadForm(form._id.toString());
+      await loadForm(form.id);
 
       return data.element;
     } catch (err: any) {
@@ -394,102 +412,110 @@ export function FormBuilderProvider({ children }: FormBuilderProviderProps) {
     }
   };
 
+  // Update the updateElement method to handle elements properly
   const updateElement = async (
-    pageId: string | ObjectId,
-    elementId: string | ObjectId,
-    updates: Partial<ElementDocument>
+    pageId: number,
+    elementId: number,
+    updates: Partial<ElementInstance>
   ): Promise<boolean> => {
-    if (!form) {
-      setError("No form loaded");
-      return false;
-    }
-
     try {
-      const pageIndex = form.pages.findIndex(
-        (p) => p._id.toString() === pageId
+      if (!form) return false;
+
+      // Find the page index
+      const pageIndex = form.pages.findIndex((p) => p.id === pageId);
+      if (pageIndex === -1) return false;
+
+      const currentPage = form.pages[pageIndex];
+      if (!currentPage) return false;
+
+      const elements = currentPage.elements || [];
+
+      const elementIndex = elements.findIndex(
+        (e) => e.id === elementId
       );
 
-      if (pageIndex === -1) {
-        setError("Page not found");
-        return false;
-      }
+      if (elementIndex === -1) return false;
 
-      const elementIndex = form.pages[pageIndex].elements.findIndex(
-        (e) => e._id.toString() === elementId
-      );
+      // Create a copy of the elements array
+      const updatedElements = [...elements];
 
-      if (elementIndex === -1) {
-        setError("Element not found");
-        return false;
-      }
-
-      const updatedPages = [...form.pages];
-      updatedPages[pageIndex] = {
-        ...updatedPages[pageIndex],
-        elements: [...updatedPages[pageIndex].elements],
-      };
-
-      updatedPages[pageIndex].elements[elementIndex] = {
-        ...updatedPages[pageIndex].elements[elementIndex],
+      // Update the element
+      updatedElements[elementIndex] = {
+        ...updatedElements[elementIndex],
         ...updates,
+      } as ElementInstance & { template?: ElementTemplate };
+
+      // Create the updated page with proper typing
+      const updatedPage = {
+        ...currentPage,
+        elements: updatedElements
       };
 
+      // Create a copy of the pages array
+      const updatedPages = [...form.pages];
+      updatedPages[pageIndex] = updatedPage;
+
+      // Update the form state
       setForm({
         ...form,
         pages: updatedPages,
-        updated_at: new Date(),
+        updatedAt: new Date(),
       });
 
       return true;
-    } catch (err: any) {
-      setError(err.message || "Failed to update element");
-      console.error("Error updating element:", err);
+    } catch (error) {
+      console.error("Error updating element:", error);
       return false;
     }
   };
 
+  // Update the deleteElement method to handle elements properly
   const deleteElement = async (
-    pageId: string | ObjectId,
-    elementId: string | ObjectId
+    pageId: number,
+    elementId: number
   ): Promise<boolean> => {
-    if (!form) {
-      setError("No form loaded");
-      return false;
-    }
-
     try {
-      const pageIndex = form.pages.findIndex(
-        (p) => p._id.toString() === pageId
+      if (!form) return false;
+
+      // Find the page index
+      const pageIndex = form.pages.findIndex((p) => p.id === pageId);
+      if (pageIndex === -1) return false;
+
+      const currentPage = form.pages[pageIndex];
+      if (!currentPage) return false;
+
+      const elements = currentPage.elements || [];
+
+      // Filter out the element to delete
+      const updatedElements = elements.filter(
+        (e) => e.id !== elementId
       );
 
-      if (pageIndex === -1) {
-        setError("Page not found");
-        return false;
-      }
-
-      const updatedPages = [...form.pages];
-      updatedPages[pageIndex] = {
-        ...updatedPages[pageIndex],
-        elements: updatedPages[pageIndex].elements.filter(
-          (e) => e._id.toString() !== elementId
-        ),
-      };
-
-      // Reorder remaining elements
-      updatedPages[pageIndex].elements.forEach((element, index) => {
-        element.order = index + 1;
+      // Reorder the remaining elements
+      updatedElements.forEach((element, index) => {
+        element.orderIndex = index + 1;
       });
 
+      // Create the updated page with proper typing
+      const updatedPage = {
+        ...currentPage,
+        elements: updatedElements
+      };
+
+      // Create a copy of the pages array
+      const updatedPages = [...form.pages];
+      updatedPages[pageIndex] = updatedPage;
+
+      // Update the form state
       setForm({
         ...form,
         pages: updatedPages,
-        updated_at: new Date(),
+        updatedAt: new Date(),
       });
 
       return true;
-    } catch (err: any) {
-      setError(err.message || "Failed to delete element");
-      console.error("Error deleting element:", err);
+    } catch (error) {
+      console.error("Error deleting element:", error);
       return false;
     }
   };
@@ -508,7 +534,7 @@ export function FormBuilderProvider({ children }: FormBuilderProviderProps) {
     setError(null);
 
     try {
-      const response = await fetch(`/api/forms/${form._id}/groups`, {
+      const response = await fetch(`/api/forms/${form.id}/groups`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -540,8 +566,8 @@ export function FormBuilderProvider({ children }: FormBuilderProviderProps) {
   };
 
   const updateGroup = async (
-    groupId: string | ObjectId,
-    updates: Partial<GroupDocument>
+    groupId: number,
+    updates: Partial<GroupInstance>
   ): Promise<boolean> => {
     if (!form) {
       setError("No form loaded");
@@ -555,10 +581,7 @@ export function FormBuilderProvider({ children }: FormBuilderProviderProps) {
       }
 
       const groupIndex = form.groups.findIndex(
-        (g) =>
-          typeof g === "object" &&
-          "_id" in g &&
-          (g as { _id: ObjectId })._id.toString() === groupId.toString()
+        (g) => g.id === groupId
       );
 
       if (groupIndex === -1) {
@@ -567,20 +590,22 @@ export function FormBuilderProvider({ children }: FormBuilderProviderProps) {
       }
 
       // Create a new group object with the updates
-      const updatedGroup: GroupDocument = {
-        _id:
-          form.groups[groupIndex] instanceof ObjectId
-            ? (form.groups[groupIndex] as ObjectId)
-            : (form.groups[groupIndex] as GroupDocument)._id,
-        title: updates.title || (form.groups[groupIndex] as any).title || "",
-        description:
-          updates.description !== undefined
-            ? updates.description
-            : (form.groups[groupIndex] as any).description,
-        order:
-          updates.order !== undefined
-            ? updates.order
-            : (form.groups[groupIndex] as any).order,
+      const updatedGroup: GroupInstance = {
+        id: groupId,
+        titleOverride: updates.titleOverride || (form.groups[groupIndex] as any).titleOverride || null,
+        descriptionOverride:
+          updates.descriptionOverride !== undefined
+            ? updates.descriptionOverride
+            : (form.groups[groupIndex] as any).descriptionOverride,
+        orderIndex:
+          updates.orderIndex !== undefined
+            ? updates.orderIndex
+            : (form.groups[groupIndex] as any).orderIndex,
+        templateId: (form.groups[groupIndex] as any).templateId,
+        formId: (form.groups[groupIndex] as any).formId,
+        createdAt: (form.groups[groupIndex] as any).createdAt,
+        updatedAt: new Date(),
+        propertiesOverride: updates.propertiesOverride || (form.groups[groupIndex] as any).propertiesOverride || null
       };
 
       const updatedGroups = [...form.groups];
@@ -589,7 +614,7 @@ export function FormBuilderProvider({ children }: FormBuilderProviderProps) {
       setForm({
         ...form,
         groups: updatedGroups,
-        updated_at: new Date(),
+        updatedAt: new Date(),
       });
 
       return true;
@@ -601,7 +626,7 @@ export function FormBuilderProvider({ children }: FormBuilderProviderProps) {
   };
 
   // Delete a group
-  const deleteGroup = async (groupId: string | ObjectId): Promise<boolean> => {
+  const deleteGroup = async (groupId: number): Promise<boolean> => {
     if (!form) {
       setError("No form to delete group from");
       return false;
@@ -616,7 +641,7 @@ export function FormBuilderProvider({ children }: FormBuilderProviderProps) {
     setError(null);
 
     try {
-      const response = await fetch(`/api/forms/${form._id}/groups/${groupId}`, {
+      const response = await fetch(`/api/forms/${form.id}/groups/${groupId}`, {
         method: "DELETE",
       });
 
@@ -628,14 +653,7 @@ export function FormBuilderProvider({ children }: FormBuilderProviderProps) {
       // Update the form by removing the deleted group
       setForm({
         ...form,
-        groups: form.groups.filter((g) => {
-          if (typeof g === "object" && "_id" in g) {
-            return (
-              (g as { _id: ObjectId })._id.toString() !== groupId.toString()
-            );
-          }
-          return g.toString() !== groupId.toString();
-        }),
+        groups: form.groups.filter((g) => g.id !== groupId),
       });
 
       return true;
@@ -650,23 +668,23 @@ export function FormBuilderProvider({ children }: FormBuilderProviderProps) {
 
   // Add a condition to the form
   const addCondition = async (conditionData: {
-    source_element_id: string | ObjectId;
-    operator: string;
-    value: any;
-    action: string;
-    target_id: string | ObjectId;
-    target_type: string;
-  }): Promise<boolean> => {
+    name: string;
+    rule: any;
+    action: "show" | "hide";
+    targetType: "element" | "page" | "group";
+    targetId: number;
+    sourceElementId: number;
+  }): Promise<Condition | null> => {
     if (!form) {
       setError("No form to add condition to");
-      return false;
+      return null;
     }
 
     setLoading(true);
     setError(null);
 
     try {
-      const response = await fetch(`/api/forms/${form._id}/conditions`, {
+      const response = await fetch(`/api/forms/${form.id}/conditions`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -687,19 +705,19 @@ export function FormBuilderProvider({ children }: FormBuilderProviderProps) {
         conditions: [...(form.conditions || []), newCondition],
       });
 
-      return true;
+      return newCondition;
     } catch (err: any) {
       setError(err.message || "Failed to add condition");
       console.error("Error adding condition:", err);
-      return false;
+      return null;
     } finally {
       setLoading(false);
     }
   };
 
   const updateCondition = async (
-    conditionId: string,
-    updates: Partial<ConditionDocument>
+    conditionId: number,
+    updates: Partial<ConditionWithSourceElement>
   ): Promise<boolean> => {
     if (!form) {
       setError("No form loaded");
@@ -713,10 +731,7 @@ export function FormBuilderProvider({ children }: FormBuilderProviderProps) {
       }
 
       const conditionIndex = form.conditions.findIndex(
-        (c) =>
-          typeof c === "object" &&
-          "_id" in c &&
-          (c as { _id: ObjectId })._id.toString() === conditionId.toString()
+        (c) => c.id === conditionId
       );
 
       if (conditionIndex === -1) {
@@ -725,28 +740,24 @@ export function FormBuilderProvider({ children }: FormBuilderProviderProps) {
       }
 
       // Create a new condition object with the updates
-      const updatedCondition: ConditionDocument = {
-        _id:
-          form.conditions[conditionIndex] instanceof ObjectId
-            ? (form.conditions[conditionIndex] as ObjectId)
-            : (form.conditions[conditionIndex] as ConditionDocument)._id,
-        source_element_id:
-          updates.source_element_id ||
-          (form.conditions[conditionIndex] as any).source_element_id,
-        operator:
-          updates.operator || (form.conditions[conditionIndex] as any).operator,
-        value:
-          updates.value !== undefined
-            ? updates.value
-            : (form.conditions[conditionIndex] as any).value,
+      const updatedCondition: ConditionWithSourceElement = {
+        id: conditionId,
+        name:
+          updates.name || (form.conditions[conditionIndex] as any).name,
+        rule:
+          updates.rule || (form.conditions[conditionIndex] as any).rule,
         action:
           updates.action || (form.conditions[conditionIndex] as any).action,
-        target_id:
-          updates.target_id ||
-          (form.conditions[conditionIndex] as any).target_id,
-        target_type:
-          updates.target_type ||
-          (form.conditions[conditionIndex] as any).target_type,
+        targetType:
+          updates.targetType || (form.conditions[conditionIndex] as any).targetType,
+        targetId:
+          updates.targetId || (form.conditions[conditionIndex] as any).targetId,
+        sourceElementId:
+          (updates as any).sourceElementId ||
+          (form.conditions[conditionIndex] as any).sourceElementId,
+        formId: (form.conditions[conditionIndex] as any).formId,
+        createdAt: (form.conditions[conditionIndex] as any).createdAt,
+        updatedAt: new Date()
       };
 
       const updatedConditions = [...form.conditions];
@@ -755,7 +766,7 @@ export function FormBuilderProvider({ children }: FormBuilderProviderProps) {
       setForm({
         ...form,
         conditions: updatedConditions,
-        updated_at: new Date(),
+        updatedAt: new Date(),
       });
 
       return true;
@@ -768,7 +779,7 @@ export function FormBuilderProvider({ children }: FormBuilderProviderProps) {
 
   // Delete a condition
   const deleteCondition = async (
-    conditionId: string | ObjectId
+    conditionId: number
   ): Promise<boolean> => {
     if (!form) {
       setError("No form to delete condition from");
@@ -785,7 +796,7 @@ export function FormBuilderProvider({ children }: FormBuilderProviderProps) {
 
     try {
       const response = await fetch(
-        `/api/forms/${form._id}/conditions/${conditionId}`,
+        `/api/forms/${form.id}/conditions/${conditionId}`,
         {
           method: "DELETE",
         }
@@ -799,14 +810,7 @@ export function FormBuilderProvider({ children }: FormBuilderProviderProps) {
       // Update the form by removing the deleted condition
       setForm({
         ...form,
-        conditions: form.conditions.filter((c) => {
-          if (typeof c === "object" && "_id" in c) {
-            return (
-              (c as { _id: ObjectId })._id.toString() !== conditionId.toString()
-            );
-          }
-          return c.toString() !== conditionId.toString();
-        }),
+        conditions: form.conditions.filter((c) => c.id !== conditionId),
       });
 
       return true;
@@ -821,8 +825,8 @@ export function FormBuilderProvider({ children }: FormBuilderProviderProps) {
 
   // Validation Methods
   const addFormValidation = async (
-    validation: Partial<FormValidationDocument>
-  ): Promise<FormValidationDocument | null> => {
+    validation: Partial<FormValidation>
+  ): Promise<FormValidation | null> => {
     if (!form) {
       setError("No form loaded");
       return null;
@@ -832,27 +836,28 @@ export function FormBuilderProvider({ children }: FormBuilderProviderProps) {
       if (
         !validation.name ||
         !validation.rule ||
-        !validation.error_message ||
-        !validation.affected_elements
+        !validation.errorMessage ||
+        !validation.affectedElementInstances
       ) {
         setError("Missing required validation fields");
         return null;
       }
 
-      const newValidation: FormValidationDocument = {
-        _id: new ObjectId(),
+      const newValidation: FormValidation = {
+        id: Math.floor(Math.random() * 10000), // Temporary ID for client-side
         name: validation.name,
         rule: validation.rule,
-        error_message: validation.error_message,
-        affected_elements: validation.affected_elements.map(
-          (id) => new ObjectId(id.toString())
-        ),
+        errorMessage: validation.errorMessage,
+        affectedElementInstances: validation.affectedElementInstances,
+        formId: form.id,
+        createdAt: new Date(),
+        updatedAt: new Date()
       };
 
       setForm({
         ...form,
-        form_validations: [...form.form_validations, newValidation],
-        updated_at: new Date(),
+        validations: [...(form.validations || []), newValidation],
+        updatedAt: new Date(),
       });
 
       return newValidation;
@@ -864,46 +869,39 @@ export function FormBuilderProvider({ children }: FormBuilderProviderProps) {
   };
 
   const updateFormValidation = async (
-    validationId: string,
-    updates: Partial<FormValidationDocument>
+    validationId: number,
+    updates: Partial<FormValidation>
   ): Promise<boolean> => {
     if (!form) {
       setError("No form loaded");
       return false;
     }
 
+    setLoading(true);
+
     try {
-      const validationIndex = form.form_validations.findIndex(
-        (v) => v._id.toString() === validationId
+      const validationIndex = form.validations?.findIndex(
+        (v) => v.id === validationId
       );
 
-      if (validationIndex === -1) {
+      if (validationIndex === -1 || validationIndex === undefined) {
         setError("Validation not found");
         return false;
       }
 
-      const updatedValidations = [...form.form_validations];
+      const updatedValidations = [...(form.validations || [])];
 
-      // Handle affected_elements separately to ensure they are ObjectIds
-      if (updates.affected_elements) {
-        updates = {
-          ...updates,
-          affected_elements: updates.affected_elements.map(
-            (id: string | ObjectId) =>
-              id instanceof ObjectId ? id : new ObjectId(id.toString())
-          ),
-        };
-      }
-
+      // Update the validation
       updatedValidations[validationIndex] = {
         ...updatedValidations[validationIndex],
         ...updates,
-      };
+        updatedAt: new Date() // Ensure updatedAt is always set
+      } as FormValidation;
 
       setForm({
         ...form,
-        form_validations: updatedValidations,
-        updated_at: new Date(),
+        validations: updatedValidations,
+        updatedAt: new Date(),
       });
 
       return true;
@@ -911,26 +909,30 @@ export function FormBuilderProvider({ children }: FormBuilderProviderProps) {
       setError(err.message || "Failed to update validation");
       console.error("Error updating validation:", err);
       return false;
+    } finally {
+      setLoading(false);
     }
   };
 
   const deleteFormValidation = async (
-    validationId: string
+    validationId: number
   ): Promise<boolean> => {
     if (!form) {
       setError("No form loaded");
       return false;
     }
 
+    setLoading(true);
+
     try {
-      const updatedValidations = form.form_validations.filter(
-        (v) => v._id.toString() !== validationId
+      const updatedValidations = form.validations?.filter(
+        (v) => v.id !== validationId
       );
 
       setForm({
         ...form,
-        form_validations: updatedValidations,
-        updated_at: new Date(),
+        validations: updatedValidations,
+        updatedAt: new Date(),
       });
 
       return true;
@@ -938,6 +940,8 @@ export function FormBuilderProvider({ children }: FormBuilderProviderProps) {
       setError(err.message || "Failed to delete validation");
       console.error("Error deleting validation:", err);
       return false;
+    } finally {
+      setLoading(false);
     }
   };
 

@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { useFormBuilder } from "@/contexts/FormBuilderContext";
 import {
-  ConditionDocument,
-  ElementDocument,
-  PageDocument,
-  GroupDocument,
+  Condition,
+  ElementInstance,
+  ElementTemplate,
+  PageInstance,
+  GroupInstance,
+  Form
 } from "@repo/database/src/schema";
 import { Button } from "@repo/ui/components/ui/button";
 import { Card, CardContent } from "@repo/ui/components/ui/card";
@@ -29,7 +31,6 @@ import {
 import { RadioGroup, RadioGroupItem } from "@repo/ui/components/ui/radio-group";
 import { PlusCircle, Edit, Trash2, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
-import { ObjectId } from "bson";
 
 /**
  * ConditionalLogicEditor Component
@@ -37,29 +38,52 @@ import { ObjectId } from "bson";
  * This component handles conditional logic for forms, allowing users to create
  * rules that show/hide elements based on form responses.
  *
- * IMPORTANT: This component is designed to work with MongoDB's document model where
- * relationships are represented by ObjectId references rather than embedded documents.
+ * IMPORTANT: This component is designed to work with SQL database model where
+ * relationships are represented by foreign keys.
  *
  * To use this component properly:
- * 1. You must provide the form document
- * 2. You should also provide the actual loaded documents for pages, groups, elements, and conditions
- *    that are referenced by ObjectIds in the form document
- *
- * If you don't provide the loaded documents, the component will try to use the references
- * in the form document, but this may cause type errors since ObjectIds don't have the properties
- * that the actual documents have.
+ * 1. You must provide the form document with its relations
+ * 2. You should also provide the actual loaded instances for pages, groups, elements, and conditions
+ *    that are related to the form
  */
+
+// Define the FormWithRelations type
+interface FormWithRelations extends Form {
+  groups: (GroupInstance & {
+    pages?: (PageInstance & {
+      elements?: (ElementInstance & {
+        template?: ElementTemplate;
+      })[];
+    })[];
+  })[];
+  pages: (PageInstance & {
+    elements?: (ElementInstance & {
+      template?: ElementTemplate;
+    })[];
+  })[];
+  validations?: any[];
+  conditions?: Condition[];
+}
+
 interface ConditionalLogicEditorProps {
-  form: FormWithValidations;
+  form: FormWithRelations;
   // Add loaded data from the database
-  loadedPages?: PageDocument[];
-  loadedGroups?: GroupDocument[];
-  loadedElements?: ElementDocument[];
-  loadedConditions?: ConditionDocument[];
+  loadedPages?: PageInstance[];
+  loadedGroups?: GroupInstance[];
+  loadedElements?: (ElementInstance & { template?: ElementTemplate })[];
+  loadedConditions?: Condition[];
+}
+
+// Define a custom type for source elements with template
+type ElementWithTemplate = ElementInstance & { template?: ElementTemplate };
+
+// Define a custom interface for the condition data with sourceElementId
+interface ConditionWithSourceElement extends Condition {
+  sourceElementId?: number;
 }
 
 // Helper to get all usable source elements (elements that can trigger conditions)
-const getSourceElements = (elements: ElementDocument[]): ElementDocument[] => {
+const getSourceElements = (elements: ElementWithTemplate[]): ElementWithTemplate[] => {
   const sourceTypes = [
     "text_input",
     "number_input",
@@ -71,15 +95,15 @@ const getSourceElements = (elements: ElementDocument[]): ElementDocument[] => {
   ];
 
   return elements.filter((element) =>
-    sourceTypes.includes(element.type as string)
+    sourceTypes.includes(element.template?.type as string)
   );
 };
 
 // Helper to get all potential targets (pages, groups, elements) for conditions
 const getTargetElements = (
-  pages: PageDocument[],
-  groups: GroupDocument[],
-  elements: ElementDocument[]
+  pages: PageInstance[],
+  groups: GroupInstance[],
+  elements: ElementWithTemplate[]
 ): { id: string; type: "page" | "element" | "group"; label: string }[] => {
   const targets: {
     id: string;
@@ -87,48 +111,38 @@ const getTargetElements = (
     label: string;
   }[] = [];
 
-  // Add pages
+  // Add pages as targets
   pages.forEach((page) => {
-    if (page._id) {
-      targets.push({
-        id: page._id.toString(),
-        type: "page",
-        label: `Page: ${(page as any).title || "Untitled"}`,
-      });
-    }
+    targets.push({
+      id: page.id.toString(),
+      type: "page",
+      label: `Page: ${page.titleOverride || "Untitled"}`,
+    });
   });
 
-  // Add groups
+  // Add groups as targets
   groups.forEach((group) => {
-    if (group._id) {
-      targets.push({
-        id: group._id.toString(),
-        type: "group",
-        label: `Group: ${(group as any).title || "Untitled"}`,
-      });
-    }
+    targets.push({
+      id: group.id.toString(),
+      type: "group",
+      label: `Group: ${group.titleOverride || "Untitled"}`,
+    });
   });
 
-  // Add elements
+  // Add elements as targets
   elements.forEach((element) => {
-    if (element._id) {
-      // Find the page this element belongs to
-      const page = pages.find((p) => {
-        if (!p.element_instances) return false;
-        return p.element_instances.some((eId) => {
-          if (!eId) return false;
-          return eId.toString() === element._id!.toString();
-        });
-      });
+    // Find the page this element belongs to
+    const page = pages.find((p) => {
+      return p.id === element.pageInstanceId;
+    });
 
-      targets.push({
-        id: element._id.toString(),
-        type: "element",
-        label: `Element: ${element.label || "Untitled"} ${
-          page ? `(${(page as any).title || "Untitled"})` : ""
-        }`,
-      });
-    }
+    targets.push({
+      id: element.id.toString(),
+      type: "element",
+      label: `Element: ${element.template?.label || "Untitled"} ${
+        page ? `(${page.titleOverride || "Untitled"})` : ""
+      }`,
+    });
   });
 
   return targets;
@@ -144,16 +158,16 @@ const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
   const { addCondition, updateCondition, deleteCondition } = useFormBuilder();
 
   // State for loaded data
-  const [pages, setPages] = useState<PageDocument[]>(loadedPages);
-  const [groups, setGroups] = useState<GroupDocument[]>(loadedGroups);
-  const [elements, setElements] = useState<ElementDocument[]>(loadedElements);
+  const [pages, setPages] = useState<PageInstance[]>(loadedPages);
+  const [groups, setGroups] = useState<GroupInstance[]>(loadedGroups);
+  const [elements, setElements] = useState<ElementInstance[]>(loadedElements);
   const [conditions, setConditions] =
-    useState<ConditionDocument[]>(loadedConditions);
+    useState<Condition[]>(loadedConditions);
 
   const [newConditionDialogOpen, setNewConditionDialogOpen] = useState(false);
   const [editConditionDialogOpen, setEditConditionDialogOpen] = useState(false);
   const [currentCondition, setCurrentCondition] =
-    useState<ConditionDocument | null>(null);
+    useState<Condition | null>(null);
 
   // Form state for new/edit condition
   const [sourceElementId, setSourceElementId] = useState("");
@@ -178,7 +192,7 @@ const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
       setConditions(loadedConditions);
     } else if (form.conditions) {
       // If conditions are available in the form prop, use those
-      setConditions(form.conditions as unknown as ConditionDocument[]);
+      setConditions(form.conditions as unknown as Condition[]);
     }
   }, [
     loadedPages,
@@ -188,8 +202,8 @@ const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
     form.conditions,
   ]);
 
-  const sourceElements = getSourceElements(elements);
-  const targetElements = getTargetElements(pages, groups, elements);
+  const sourceElements = getSourceElements(elements as ElementWithTemplate[]);
+  const targetElements = getTargetElements(pages, groups, elements as ElementWithTemplate[]);
 
   const resetConditionForm = () => {
     setSourceElementId("");
@@ -206,18 +220,18 @@ const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
       return;
     }
 
-    const conditionData = {
-      source_element_id: new ObjectId(sourceElementId),
-      operator,
-      value: conditionValue,
-      action,
-      target_id: new ObjectId(targetId),
-      target_type: targetType,
-    };
+    const parsedRule = operator;
 
-    const success = await addCondition(conditionData);
+    const newCondition = await addCondition({
+      name: conditionValue,
+      rule: parsedRule,
+      action: action as "show" | "hide",
+      targetType: targetType as "element" | "page" | "group",
+      targetId: parseInt(targetId, 10),
+      sourceElementId: parseInt(sourceElementId, 10),
+    });
 
-    if (success) {
+    if (newCondition) {
       toast.success("Condition added successfully");
       setNewConditionDialogOpen(false);
       resetConditionForm();
@@ -229,21 +243,34 @@ const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
   };
 
   const handleEditCondition = async () => {
-    if (!currentCondition || !currentCondition._id) return;
+    if (!currentCondition || !currentCondition.id) return;
 
     if (!sourceElementId || !conditionValue || !targetId) {
       toast.error("All fields are required");
       return;
     }
 
-    const success = await updateCondition(currentCondition._id.toString(), {
-      source_element_id: new ObjectId(sourceElementId),
-      operator,
-      value: conditionValue,
-      action,
-      target_id: new ObjectId(targetId),
-      target_type: targetType,
-    });
+    const parsedRule = operator;
+
+    // Create an object with only the properties that exist in the Condition type
+    const updates: Partial<Condition> = {
+      name: conditionValue,
+      rule: parsedRule,
+      action: action as "show" | "hide",
+      targetType: targetType as "element" | "page" | "group",
+      targetId: parseInt(targetId, 10),
+    };
+
+    // Add sourceElementId separately since it's not in the Condition type
+    const fullUpdates = {
+      ...updates,
+      sourceElementId: parseInt(sourceElementId, 10),
+    };
+
+    const success = await updateCondition(
+      parseInt(currentCondition.id.toString(), 10),
+      fullUpdates as any // Use type assertion since we know the API accepts this
+    );
 
     if (success) {
       toast.success("Condition updated successfully");
@@ -253,15 +280,15 @@ const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
 
       // Update local state
       const updatedConditions = conditions.map((c) =>
-        c._id?.toString() === currentCondition._id.toString()
+        c.id?.toString() === currentCondition.id.toString()
           ? {
               ...c,
-              source_element_id: new ObjectId(sourceElementId),
-              operator,
-              value: conditionValue,
-              action,
-              target_id: new ObjectId(targetId),
-              target_type: targetType,
+              name: conditionValue,
+              rule: parsedRule,
+              action: action as "show" | "hide",
+              targetType: targetType as "element" | "page" | "group",
+              targetId: parseInt(targetId, 10),
+              sourceElementId: parseInt(sourceElementId, 10),
             }
           : c
       );
@@ -277,14 +304,14 @@ const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
         "Are you sure you want to delete this condition? This action cannot be undone."
       )
     ) {
-      const success = await deleteCondition(conditionId);
+      const success = await deleteCondition(parseInt(conditionId, 10));
 
       if (success) {
         toast.success("Condition deleted successfully");
 
         // Update local state
         setConditions(
-          conditions.filter((c) => c._id?.toString() !== conditionId)
+          conditions.filter((c) => c.id?.toString() !== conditionId)
         );
       } else {
         toast.error("Failed to delete condition");
@@ -292,14 +319,16 @@ const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
     }
   };
 
-  const openEditConditionDialog = (condition: ConditionDocument) => {
+  const openEditConditionDialog = (condition: Condition) => {
     setCurrentCondition(condition);
-    if (condition.source_element_id) {
-      setSourceElementId(condition.source_element_id.toString());
+    // Use sourceElementId from the condition if it exists
+    const sourceId = (condition as any).sourceElementId;
+    if (sourceId) {
+      setSourceElementId(sourceId.toString());
     }
-    if (condition.operator) {
+    if (condition.rule) {
       setOperator(
-        condition.operator as
+        condition.rule as
           | "equals"
           | "not_equals"
           | "contains"
@@ -307,51 +336,49 @@ const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
           | "less_than"
       );
     }
-    setConditionValue(condition.value || "");
+    setConditionValue(condition.name || "");
     if (condition.action) {
       setAction(condition.action as "show" | "hide");
     }
-    if (condition.target_id) {
-      setTargetId(condition.target_id.toString());
+    if (condition.targetId) {
+      setTargetId(condition.targetId.toString());
     }
-    if (condition.target_type) {
-      setTargetType(condition.target_type as "page" | "element" | "group");
+    if (condition.targetType) {
+      setTargetType(condition.targetType as "page" | "element" | "group");
     }
     setEditConditionDialogOpen(true);
   };
 
   // Helper to find element by ID
-  const getElementById = (elementId: string): ElementDocument | null => {
-    return elements.find((e) => e._id?.toString() === elementId) || null;
+  const getElementById = (elementId: string): ElementWithTemplate | null => {
+    return elements.find((e) => e.id?.toString() === elementId) as ElementWithTemplate || null;
   };
 
   // Helper to get friendly names for condition display
-  const getConditionDescription = (condition: ConditionDocument) => {
-    if (!condition.source_element_id) return "Unknown condition";
+  const getConditionDescription = (condition: ConditionWithSourceElement) => {
+    if (!condition.sourceElementId) return "Unknown condition";
 
-    const sourceElement = getElementById(
-      condition.source_element_id.toString()
-    );
+    const sourceElement = getElementById(condition.sourceElementId.toString());
     if (!sourceElement) return "Unknown condition";
 
     let targetDescription = "Unknown target";
 
-    if (condition.target_type === "page" && condition.target_id) {
+    if (condition.targetType === "page" && condition.targetId) {
       const page = pages.find(
-        (p) => p._id?.toString() === condition.target_id?.toString()
+        (p) => p.id?.toString() === condition.targetId?.toString()
       );
       if (page)
-        targetDescription = `Page: ${(page as any).title || "Untitled"}`;
-    } else if (condition.target_type === "group" && condition.target_id) {
+        targetDescription = `Page: ${(page as any).titleOverride || "Untitled"}`;
+    } else if (condition.targetType === "group" && condition.targetId) {
       const group = groups.find(
-        (g) => g._id?.toString() === condition.target_id?.toString()
+        (g) => g.id?.toString() === condition.targetId?.toString()
       );
       if (group)
-        targetDescription = `Group: ${(group as any).title || "Untitled"}`;
-    } else if (condition.target_type === "element" && condition.target_id) {
-      const element = getElementById(condition.target_id.toString());
+        targetDescription = `Group: ${(group as any).titleOverride || "Untitled"}`;
+    } else if (condition.targetType === "element" && condition.targetId) {
+      const element = getElementById(condition.targetId.toString());
       if (element)
-        targetDescription = `Element: ${element.label || "Untitled"}`;
+        targetDescription = `Element: ${element.template?.label || "Untitled"}`;
     }
 
     const operatorMap: Record<string, string> = {
@@ -362,16 +389,16 @@ const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
       less_than: "is less than",
     };
 
-    const operatorText = condition.operator
-      ? operatorMap[condition.operator as string]
+    const operatorText = condition.rule
+      ? operatorMap[condition.rule as string]
       : "equals";
     const actionText = condition.action === "show" ? "show" : "hide";
 
     return (
       <div className="flex flex-wrap items-center gap-1">
-        <span className="font-medium">{sourceElement.label}</span>
+        <span className="font-medium">{sourceElement.labelOverride || (sourceElement.template?.label || "Unknown")}</span>
         <span>{operatorText}</span>
-        <span className="font-medium">&apos;{condition.value}&apos;</span>
+        <span className="font-medium">&apos;{condition.name}&apos;</span>
         <ArrowRight className="h-3 w-3 mx-1" />
         <span>{actionText}</span>
         <span className="font-medium">{targetDescription}</span>
@@ -415,12 +442,12 @@ const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
                   <SelectContent>
                     {sourceElements.map(
                       (element) =>
-                        element._id && (
+                        element.id && (
                           <SelectItem
-                            key={element._id.toString()}
-                            value={element._id.toString()}
+                            key={element.id.toString()}
+                            value={element.id.toString()}
                           >
-                            {element.label}
+                            {element.labelOverride || (element.template?.label || "Unknown")}
                           </SelectItem>
                         )
                     )}
@@ -545,12 +572,12 @@ const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
                   <SelectContent>
                     {sourceElements.map(
                       (element) =>
-                        element._id && (
+                        element.id && (
                           <SelectItem
-                            key={element._id.toString()}
-                            value={element._id.toString()}
+                            key={element.id.toString()}
+                            value={element.id.toString()}
                           >
-                            {element.label}
+                            {element.labelOverride || (element.template?.label || "Unknown")}
                           </SelectItem>
                         )
                     )}
@@ -672,12 +699,12 @@ const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
         <div className="space-y-4">
           {conditions.map(
             (condition) =>
-              condition._id && (
-                <Card key={condition._id.toString()}>
+              condition.id && (
+                <Card key={condition.id.toString()}>
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
-                        {getConditionDescription(condition)}
+                        {getConditionDescription(condition as ConditionWithSourceElement)}
                       </div>
                       <div className="flex space-x-2 ml-4">
                         <Button
@@ -691,8 +718,8 @@ const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
                           variant="ghost"
                           size="sm"
                           onClick={() =>
-                            condition._id &&
-                            handleDeleteCondition(condition._id.toString())
+                            condition.id &&
+                            handleDeleteCondition(condition.id.toString())
                           }
                         >
                           <Trash2 className="h-4 w-4" />

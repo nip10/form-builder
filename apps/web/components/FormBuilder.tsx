@@ -30,7 +30,7 @@ import SubmissionsView from "./SubmissionsView";
 import FormShare from "./FormShare";
 
 interface FormBuilderProps {
-  formId?: string;
+  formId?: number;
   ownerId: string;
 }
 
@@ -129,8 +129,8 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formId, ownerId }) => {
         <div>
           <h1 className="text-2xl font-bold">Form Builder</h1>
           <p className="text-sm text-gray-500">
-            {form?.updated_at
-              ? `Last saved: ${new Date(form.updated_at).toLocaleString()}`
+            {form?.updatedAt
+              ? `Last saved: ${new Date(form.updatedAt).toLocaleString()}`
               : "Not saved yet"}
           </p>
         </div>
@@ -235,13 +235,13 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formId, ownerId }) => {
 
         <TabsContent value="submissions">
           {form && (
-            <SubmissionsView formId={form._id.toString()} form={form as any} />
+            <SubmissionsView formId={form.id.toString()} form={form as any} />
           )}
         </TabsContent>
 
         <TabsContent value="share">
           {form && (
-            <FormShare formId={form._id.toString()} formTitle={form.title} />
+            <FormShare formId={form.id.toString()} formTitle={form.title} />
           )}
         </TabsContent>
       </Tabs>

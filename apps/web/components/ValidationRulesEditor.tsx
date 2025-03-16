@@ -1,6 +1,12 @@
 import { useFormBuilder } from "@/contexts/FormBuilderContext";
-import { FormValidationDocument, ElementDocument } from "@repo/database/src/schema";
-import { ObjectId } from "bson";
+import {
+  FormValidation,
+  ElementInstance,
+  Form,
+  GroupInstance,
+  PageInstance,
+  ElementTemplate
+} from "@repo/database/src/schema";
 import { Button } from "@repo/ui/components/ui/button";
 import {
   Card,
@@ -39,18 +45,38 @@ import {
 } from "@repo/ui/components/ui/tooltip";
 import { useState } from "react";
 
-// Helper to convert string IDs to ObjectIds
-const toObjectId = (id: string): ObjectId => {
-  return new ObjectId(id);
+// Define the FormWithRelations type
+interface FormWithRelations extends Form {
+  groups: (GroupInstance & {
+    pages?: (PageInstance & {
+      elements?: (ElementInstance & {
+        template?: ElementTemplate;
+      })[];
+    })[];
+  })[];
+  pages: (PageInstance & {
+    elements?: (ElementInstance & {
+      template?: ElementTemplate;
+    })[];
+  })[];
+  validations?: FormValidation[];
+  conditions?: any[];
+}
+
+// Helper to convert string IDs to numbers
+const toNumberId = (id: string): number => {
+  return parseInt(id, 10);
 };
 
 // Helper to flatten all elements from all pages
-const getAllElements = (form: FormWithValidations): ElementDocument[] => {
-  const allElements: ElementDocument[] = [];
+const getAllElements = (form: FormWithRelations): (ElementInstance & { template?: ElementTemplate })[] => {
+  const allElements: (ElementInstance & { template?: ElementTemplate })[] = [];
   if (form.pages) {
-    form.pages.forEach((page) => {
+    form.pages.forEach((page: PageInstance & {
+      elements?: (ElementInstance & { template?: ElementTemplate })[]
+    }) => {
       if (page.elements) {
-        page.elements.forEach((element) => {
+        page.elements.forEach((element: ElementInstance & { template?: ElementTemplate }) => {
           allElements.push(element);
         });
       }
@@ -60,7 +86,7 @@ const getAllElements = (form: FormWithValidations): ElementDocument[] => {
 };
 
 interface ValidationRulesEditorProps {
-  form: FormWithValidations;
+  form: FormWithRelations;
 }
 
 const ValidationRulesEditor: React.FC<ValidationRulesEditorProps> = ({
@@ -73,7 +99,7 @@ const ValidationRulesEditor: React.FC<ValidationRulesEditorProps> = ({
   const [editValidationDialogOpen, setEditValidationDialogOpen] =
     useState(false);
   const [currentValidation, setCurrentValidation] =
-    useState<FormValidationDocument | null>(null);
+    useState<FormValidation | null>(null);
 
   // Form state for new/edit validation
   const [validationName, setValidationName] = useState("");
@@ -158,14 +184,11 @@ const ValidationRulesEditor: React.FC<ValidationRulesEditorProps> = ({
       // Parse the JSON rule to validate it
       const parsedRule = JSON.parse(validationRule);
 
-      // Convert string IDs to ObjectIds
-      const objectIds = selectedElements.map((id) => toObjectId(id));
-
       const newValidation = await addFormValidation({
         name: validationName,
         rule: parsedRule,
-        error_message: validationErrorMessage,
-        affected_elements: objectIds,
+        errorMessage: validationErrorMessage,
+        affectedElementInstances: selectedElements,
       });
 
       if (newValidation) {
@@ -198,16 +221,13 @@ const ValidationRulesEditor: React.FC<ValidationRulesEditorProps> = ({
       // Parse the JSON rule to validate it
       const parsedRule = JSON.parse(validationRule);
 
-      // Convert string IDs to ObjectIds
-      const objectIds = selectedElements.map((id) => toObjectId(id));
-
       const success = await updateFormValidation(
-        currentValidation._id.toString(),
+        parseInt(currentValidation.id.toString(), 10),
         {
           name: validationName,
           rule: parsedRule,
-          error_message: validationErrorMessage,
-          affected_elements: objectIds,
+          errorMessage: validationErrorMessage,
+          affectedElementInstances: selectedElements,
         }
       );
 
@@ -231,7 +251,7 @@ const ValidationRulesEditor: React.FC<ValidationRulesEditorProps> = ({
         "Are you sure you want to delete this validation rule? This action cannot be undone."
       )
     ) {
-      const success = await deleteFormValidation(validationId);
+      const success = await deleteFormValidation(parseInt(validationId, 10));
 
       if (success) {
         toast.success("Validation rule deleted successfully");
@@ -241,14 +261,14 @@ const ValidationRulesEditor: React.FC<ValidationRulesEditorProps> = ({
     }
   };
 
-  const openEditValidationDialog = (validation: FormValidationDocument) => {
+  const openEditValidationDialog = (validation: FormValidation) => {
     setCurrentValidation(validation);
     setValidationName(validation.name || "");
     setValidationRule(JSON.stringify(validation.rule, null, 2));
-    setValidationErrorMessage(validation.error_message || "");
+    setValidationErrorMessage(validation.errorMessage || "");
     setSelectedElements(
-      validation.affected_elements
-        ? validation.affected_elements.map((id) => id.toString())
+      validation.affectedElementInstances
+        ? validation.affectedElementInstances.map((id) => id.toString())
         : []
     );
     setEditValidationDialogOpen(true);
@@ -256,8 +276,8 @@ const ValidationRulesEditor: React.FC<ValidationRulesEditorProps> = ({
 
   // Helper to find element label by id
   const getElementLabelById = (elementId: string) => {
-    const element = allElements.find((e) => e._id.toString() === elementId);
-    return element ? element.label : "Unknown Element";
+    const element = allElements.find((el) => el.id.toString() === elementId);
+    return element ? (element.labelOverride || (element.template?.label || "Unknown Element")) : "Unknown Element";
   };
 
   return (
@@ -374,24 +394,24 @@ const ValidationRulesEditor: React.FC<ValidationRulesEditorProps> = ({
                     <div className="space-y-2">
                       {allElements.map((element) => (
                         <div
-                          key={element._id.toString()}
+                          key={element.id.toString()}
                           className="flex items-start space-x-2"
                         >
                           <Checkbox
-                            id={`element-${element._id.toString()}`}
+                            id={`element-${element.id.toString()}`}
                             checked={selectedElements.includes(
-                              element._id.toString()
+                              element.id.toString()
                             )}
                             onCheckedChange={(checked) => {
                               if (checked) {
                                 setSelectedElements([
                                   ...selectedElements,
-                                  element._id.toString(),
+                                  element.id.toString(),
                                 ]);
                               } else {
                                 setSelectedElements(
                                   selectedElements.filter(
-                                    (id) => id !== element._id.toString()
+                                    (id) => id !== element.id.toString()
                                   )
                                 );
                               }
@@ -399,14 +419,14 @@ const ValidationRulesEditor: React.FC<ValidationRulesEditorProps> = ({
                           />
                           <div className="grid gap-1.5 leading-none">
                             <label
-                              htmlFor={`element-${element._id.toString()}`}
+                              htmlFor={`element-${element.id.toString()}`}
                               className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                             >
-                              {element.label}
+                              {element.labelOverride || (element.template?.label || "Unknown Element")}
                             </label>
                             <p className="text-sm text-muted-foreground">
-                              {element.type
-                                ? element.type.replace("_", " ")
+                              {element.template?.type
+                                ? element.template.type.replace("_", " ")
                                 : "Unknown"}{" "}
                               on page{" "}
                               {(form.pages &&
@@ -415,10 +435,10 @@ const ValidationRulesEditor: React.FC<ValidationRulesEditorProps> = ({
                                     p.elements &&
                                     p.elements.some(
                                       (e) =>
-                                        e._id.toString() ===
-                                        element._id.toString()
+                                        e.id.toString() ===
+                                        element.id.toString()
                                     )
-                                )?.title) ||
+                                )?.titleOverride) ||
                                 "Unknown"}
                             </p>
                           </div>
@@ -544,24 +564,24 @@ const ValidationRulesEditor: React.FC<ValidationRulesEditorProps> = ({
                     <div className="space-y-2">
                       {allElements.map((element) => (
                         <div
-                          key={element._id.toString()}
+                          key={element.id.toString()}
                           className="flex items-start space-x-2"
                         >
                           <Checkbox
-                            id={`edit-element-${element._id.toString()}`}
+                            id={`edit-element-${element.id.toString()}`}
                             checked={selectedElements.includes(
-                              element._id.toString()
+                              element.id.toString()
                             )}
                             onCheckedChange={(checked) => {
                               if (checked) {
                                 setSelectedElements([
                                   ...selectedElements,
-                                  element._id.toString(),
+                                  element.id.toString(),
                                 ]);
                               } else {
                                 setSelectedElements(
                                   selectedElements.filter(
-                                    (id) => id !== element._id.toString()
+                                    (id) => id !== element.id.toString()
                                   )
                                 );
                               }
@@ -569,14 +589,14 @@ const ValidationRulesEditor: React.FC<ValidationRulesEditorProps> = ({
                           />
                           <div className="grid gap-1.5 leading-none">
                             <label
-                              htmlFor={`edit-element-${element._id.toString()}`}
+                              htmlFor={`edit-element-${element.id.toString()}`}
                               className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                             >
-                              {element.label}
+                              {element.labelOverride || (element.template?.label || "Unknown Element")}
                             </label>
                             <p className="text-sm text-muted-foreground">
-                              {element.type
-                                ? element.type.replace("_", " ")
+                              {element.template?.type
+                                ? element.template.type.replace("_", " ")
                                 : "Unknown"}{" "}
                               on page{" "}
                               {(form.pages &&
@@ -585,10 +605,10 @@ const ValidationRulesEditor: React.FC<ValidationRulesEditorProps> = ({
                                     p.elements &&
                                     p.elements.some(
                                       (e) =>
-                                        e._id.toString() ===
-                                        element._id.toString()
+                                        e.id.toString() ===
+                                        element.id.toString()
                                     )
-                                )?.title) ||
+                                )?.titleOverride) ||
                                 "Unknown"}
                             </p>
                           </div>
@@ -613,7 +633,7 @@ const ValidationRulesEditor: React.FC<ValidationRulesEditorProps> = ({
         </Dialog>
       </div>
 
-      {form.form_validations && form.form_validations.length === 0 ? (
+      {form.validations && form.validations.length === 0 ? (
         <Card>
           <CardContent className="pt-6">
             <div className="text-center p-6">
@@ -631,9 +651,9 @@ const ValidationRulesEditor: React.FC<ValidationRulesEditorProps> = ({
         </Card>
       ) : (
         <div className="space-y-4">
-          {form.form_validations &&
-            form.form_validations.map((validation) => (
-              <Card key={validation._id.toString()}>
+          {form.validations &&
+            form.validations.map((validation) => (
+              <Card key={validation.id.toString()}>
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle>{validation.name}</CardTitle>
@@ -649,14 +669,14 @@ const ValidationRulesEditor: React.FC<ValidationRulesEditorProps> = ({
                         variant="ghost"
                         size="sm"
                         onClick={() =>
-                          handleDeleteValidation(validation._id.toString())
+                          handleDeleteValidation(validation.id.toString())
                         }
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
-                  <CardDescription>{validation.error_message}</CardDescription>
+                  <CardDescription>{validation.errorMessage}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="grid gap-4">
@@ -665,8 +685,8 @@ const ValidationRulesEditor: React.FC<ValidationRulesEditorProps> = ({
                         Affected Elements:
                       </h4>
                       <div className="flex flex-wrap gap-2">
-                        {validation.affected_elements &&
-                          validation.affected_elements.map((elementId) => (
+                        {validation.affectedElementInstances &&
+                          validation.affectedElementInstances.map((elementId) => (
                             <span
                               key={elementId.toString()}
                               className="text-xs px-2 py-1 bg-gray-100 rounded-full"

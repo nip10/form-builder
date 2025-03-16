@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
-  SubmissionDocument as BaseSubmissionDocument,
-  ElementDocument,
+  Submission,
+  ElementInstance,
+  ElementTemplate,
+  Form,
+  PageInstance
 } from "@repo/database/src/schema";
 import {
   Card,
@@ -30,13 +33,16 @@ import { Input } from "@repo/ui/components/ui/input";
 import { Download, Eye, Search, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-// Extend SubmissionDocument to ensure data is defined
-interface SubmissionDocument extends BaseSubmissionDocument {
-  data?: Record<string, any>;
+// Define the form type with pages
+interface FormWithPages extends Form {
+  title: string;
+  pages: (PageInstance & {
+    elements?: (ElementInstance & { template?: ElementTemplate })[];
+  })[];
 }
 
-// Ensure data is defined for EnhancedSubmissionDocument
-interface EnhancedSubmissionDocument extends SubmissionDocument {
+// Ensure data is defined for EnhancedSubmission
+interface EnhancedSubmission extends Submission {
   data: Record<string, any>;
 }
 
@@ -46,7 +52,7 @@ interface SubmissionsViewProps {
 }
 
 interface SubmissionViewProps {
-  submission: EnhancedSubmissionDocument;
+  submission: EnhancedSubmission;
   form: FormWithPages;
 }
 
@@ -54,13 +60,13 @@ interface SubmissionViewProps {
 const getElementById = (
   form: FormWithPages,
   elementId: string
-): ElementDocument | null => {
+): (ElementInstance & { template?: ElementTemplate }) | null => {
   if (!form.pages) return null;
 
   for (const page of form.pages) {
     if (!page.elements) continue;
 
-    const element = page.elements.find((e) => e._id.toString() === elementId);
+    const element = page.elements.find((e) => e.id.toString() === elementId);
     if (element) return element;
   }
   return null;
@@ -77,11 +83,11 @@ const SubmissionView: React.FC<SubmissionViewProps> = ({
         <div>
           <h3 className="text-lg font-medium">Submission Details</h3>
           <p className="text-sm text-gray-500">
-            Submitted: {new Date(submission.created_at).toLocaleString()}
+            Submitted: {new Date(submission.createdAt).toLocaleString()}
           </p>
         </div>
         <p className="text-sm">
-          ID: <span className="font-mono">{submission._id.toString()}</span>
+          ID: <span className="font-mono">{submission.id.toString()}</span>
         </p>
       </div>
 
@@ -102,7 +108,7 @@ const SubmissionView: React.FC<SubmissionViewProps> = ({
               // Format the value based on element type
               let displayValue: React.ReactNode = value;
 
-              if (element.type === "checkbox") {
+              if (element.template?.type === "checkbox") {
                 displayValue = value ? "Yes" : "No";
               } else if (
                 value === null ||
@@ -121,7 +127,7 @@ const SubmissionView: React.FC<SubmissionViewProps> = ({
               return (
                 <TableRow key={elementId}>
                   <TableCell className="font-medium">
-                    {element.label || ""}
+                    {element.labelOverride || element.template?.label || ""}
                   </TableCell>
                   <TableCell>{displayValue}</TableCell>
                 </TableRow>
@@ -136,12 +142,12 @@ const SubmissionView: React.FC<SubmissionViewProps> = ({
 
 // Main submissions view component
 const SubmissionsView: React.FC<SubmissionsViewProps> = ({ formId, form }) => {
-  const [submissions, setSubmissions] = useState<SubmissionDocument[]>([]);
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSubmission, setSelectedSubmission] =
-    useState<SubmissionDocument | null>(null);
+    useState<Submission | null>(null);
 
   const fetchSubmissions = useCallback(async () => {
     try {
@@ -183,8 +189,8 @@ const SubmissionsView: React.FC<SubmissionsViewProps> = ({ formId, form }) => {
         form.pages.forEach((page) => {
           if (page.elements) {
             page.elements.forEach((element) => {
-              if (element.type !== "text" && element.type !== "image") {
-                elements[element._id.toString()] = element.label || "";
+              if (element.template?.type !== "text" && element.template?.type !== "image") {
+                elements[element.id.toString()] = element.labelOverride || element.template?.label || "";
               }
             });
           }
@@ -201,8 +207,8 @@ const SubmissionsView: React.FC<SubmissionsViewProps> = ({ formId, form }) => {
       // Create CSV rows
       const rows = submissions.map((submission) => {
         const row: string[] = [
-          submission._id.toString(),
-          new Date(submission.created_at).toISOString(),
+          submission.id.toString(),
+          new Date(submission.createdAt).toISOString(),
         ];
 
         // Add data for each element
@@ -260,7 +266,7 @@ const SubmissionsView: React.FC<SubmissionsViewProps> = ({ formId, form }) => {
     const query = searchQuery.toLowerCase();
 
     // Search in submission ID
-    if (submission._id.toString().toLowerCase().includes(query)) return true;
+    if (submission.id.toString().toLowerCase().includes(query)) return true;
 
     // Search in submission data
     if (submission.data) {
@@ -270,7 +276,7 @@ const SubmissionsView: React.FC<SubmissionsViewProps> = ({ formId, form }) => {
         if (!element) continue;
 
         // Check if element label matches
-        if (element.label && element.label.toLowerCase().includes(query))
+        if (element.labelOverride && element.labelOverride.toLowerCase().includes(query))
           return true;
 
         // Check if value matches
@@ -371,9 +377,9 @@ const SubmissionsView: React.FC<SubmissionsViewProps> = ({ formId, form }) => {
                 </TableHeader>
                 <TableBody>
                   {filteredSubmissions.map((submission) => (
-                    <TableRow key={submission._id.toString()}>
+                    <TableRow key={submission.id.toString()}>
                       <TableCell>
-                        {new Date(submission.created_at).toLocaleString()}
+                        {new Date(submission.createdAt).toLocaleString()}
                       </TableCell>
                       <TableCell>
                         {submission.completed ? (
@@ -429,7 +435,7 @@ const SubmissionsView: React.FC<SubmissionsViewProps> = ({ formId, form }) => {
                 {
                   ...selectedSubmission,
                   data: selectedSubmission.data || {},
-                } as EnhancedSubmissionDocument
+                } as EnhancedSubmission
               }
               form={form}
             />
