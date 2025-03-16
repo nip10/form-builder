@@ -1,28 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { FormModel } from "@/lib/models";
-import { FormDocument, FormOptions } from "@/lib/schemas";
-import { initializePapr } from "@/lib/db";
-import { DocumentForInsert } from "papr";
+import { FormRepository } from "@/lib/repositories/form-repository";
+
+const formRepository = new FormRepository();
 
 // GET /api/forms - Get all forms
-export async function GET() {
+export async function GET(): Promise<NextResponse> {
   try {
-    await initializePapr();
-
-    const forms = await FormModel.find(
-      {},
-      {
-        projection: {
-          _id: 1,
-          title: 1,
-          description: 1,
-          created_at: 1,
-          updated_at: 1,
-          active: 1,
-          version: 1,
-        },
-      }
-    );
+    const forms = await formRepository.getAllForms();
 
     return NextResponse.json({ forms });
   } catch (error) {
@@ -35,10 +19,8 @@ export async function GET() {
 }
 
 // POST /api/forms - Create a new form
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    await initializePapr();
-
     const data = await request.json();
 
     // Basic validation
@@ -46,15 +28,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Title is required" }, { status: 400 });
     }
 
-    // Create a new form with reference to the page
-    const newForm: DocumentForInsert<FormDocument, FormOptions> = {
+    // Create a new form
+    const form = await formRepository.createForm({
       title: data.title,
       description: data.description || "",
-    };
+      createdBy: data.owner_id || null
+    });
 
-    const result = await FormModel.insertOne(newForm);
-
-    return NextResponse.json({ form: result }, { status: 201 });
+    return NextResponse.json({ form }, { status: 201 });
   } catch (error) {
     console.error("Error creating form:", error);
     return NextResponse.json(
