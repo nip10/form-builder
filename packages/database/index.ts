@@ -1,22 +1,17 @@
-import "server-only";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 
-import { Pool, neonConfig } from "@neondatabase/serverless";
-import { PrismaNeon } from "@prisma/adapter-neon";
-import ws from "ws";
-import { PrismaClient } from "./generated/client";
-import { keys } from "./keys";
+import * as schema from "./src/schema";
 
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
+/**
+ * Cache the database connection in development. This avoids creating a new connection on every HMR
+ * update.
+ */
+const globalForDb = globalThis as unknown as {
+  conn: postgres.Sql | undefined;
+};
 
-neonConfig.webSocketConstructor = ws;
+const conn = globalForDb.conn ?? postgres(process.env.DATABASE_URL!);
+if (process.env.NODE_ENV !== "production") globalForDb.conn = conn;
 
-const pool = new Pool({ connectionString: keys().DATABASE_URL });
-const adapter = new PrismaNeon(pool);
-
-export const database = globalForPrisma.prisma || new PrismaClient({ adapter });
-
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = database;
-}
-
-export * from "./generated/client";
+export const db = drizzle(conn, { schema });

@@ -12,26 +12,29 @@ import {
   serial,
 } from "drizzle-orm/pg-core";
 
-// Create table helper with prefix
 export const createTable = pgTableCreator((name) => `form_builder_${name}`);
 
-// Enums
 export const elementTypeEnum = pgEnum("element_type", [
   "text_input",
   "number_input",
-  "email",
   "checkbox",
+  "checkbox_group",
   "radio",
+  "radio_group",
   "select",
   "textarea",
   "image",
-  "text",
   "date",
+  "range",
+  "rating",
+  "slider",
+  "switch",
+  "toggle",
 ]);
 
-export const validationTypeEnum = pgEnum("validation_type", ["jsonLogic", "regex", "custom"]);
+export const validationTypeEnum = pgEnum("validation_type", ["jsonLogic", "regex"]);
 
-export const conditionActionEnum = pgEnum("condition_action", ["show", "hide"]);
+export const conditionActionEnum = pgEnum("condition_action", ["show", "hide", "enforce_order"]);
 
 export const targetTypeEnum = pgEnum("target_type", ["element", "page", "group"]);
 
@@ -56,8 +59,10 @@ type ValidationRule = {
 export const ElementTemplateTable = createTable("element_template", {
   id: serial("id").primaryKey(),
   type: elementTypeEnum("type").notNull(),
-  label: text("label").notNull(),
+  label: text("label"),
   defaultValue: text("default_value"),
+  required: boolean("required").notNull().default(true),
+  validations: jsonb("validations").$type<ValidationRule[]>().default([]),
   properties: jsonb("properties").$type<ElementProperties>().default({}),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -69,7 +74,8 @@ export const PageTemplateTable = createTable("page_template", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
   description: text("description"),
-  properties: jsonb("properties").$type<Record<string, any>>().default({}),
+  validations: jsonb("validations").$type<ValidationRule[]>().default([]),
+  properties: jsonb("properties").$type<Record<string, any>>().default({}), // not used yet
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -80,7 +86,8 @@ export const GroupTemplateTable = createTable("group_template", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
   description: text("description"),
-  properties: jsonb("properties").$type<Record<string, any>>().default({}),
+  validations: jsonb("validations").$type<ValidationRule[]>().default([]),
+  properties: jsonb("properties").$type<Record<string, any>>().default({}), // not used yet
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -95,10 +102,9 @@ export const FormTable = createTable("form", {
   status: formStatusEnum("status").notNull().default("draft"),
   currentVersion: integer("current_version").notNull().default(1),
   forkedFromId: integer("forked_from_id").references((): AnyPgColumn => FormTable.id),
-  forkDate: timestamp("fork_date"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-  properties: jsonb("properties").$type<Record<string, any>>().default({}),
+  properties: jsonb("properties").$type<Record<string, any>>().default({}), // not used yet
 });
 export type Form = InferSelectModel<typeof FormTable>;
 export type NewForm = InferInsertModel<typeof FormTable>;
@@ -125,7 +131,6 @@ export const FormPublishAuditTable = createTable("form_publish_audit", {
   publishedAt: timestamp("published_at").notNull().defaultNow(),
   publishedBy: text("published_by").notNull(),
   notes: text("notes"),
-  previousStatus: text("previous_status").notNull(),
 });
 export type FormPublishAudit = InferSelectModel<typeof FormPublishAuditTable>;
 export type NewFormPublishAudit = InferInsertModel<typeof FormPublishAuditTable>;
@@ -142,7 +147,7 @@ export const GroupInstanceTable = createTable("group_instance", {
   orderIndex: integer("order_index").notNull(),
   title: text("title"),
   description: text("description"),
-  properties: jsonb("properties").$type<Record<string, any>>().default({}),
+  properties: jsonb("properties").$type<Record<string, any>>().default({}), // not used yet
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -160,7 +165,7 @@ export const PageInstanceTable = createTable("page_instance", {
   orderIndex: integer("order_index").notNull(),
   title: text("title"),
   description: text("description"),
-  properties: jsonb("properties").$type<Record<string, any>>().default({}),
+  properties: jsonb("properties").$type<Record<string, any>>().default({}), // not used yet
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -176,10 +181,8 @@ export const ElementInstanceTable = createTable("element_instance", {
     .notNull()
     .references(() => PageInstanceTable.id),
   orderIndex: integer("order_index").notNull(),
-  required: boolean("required").notNull().default(false),
   label: text("label"),
-  properties: jsonb("properties").$type<ElementProperties>().default({}),
-  validations: jsonb("validations").$type<ValidationRule[]>().default([]),
+  properties: jsonb("properties").$type<ElementProperties>().default({}), // not used yet
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -193,7 +196,7 @@ export const FormValidationTable = createTable("form_validation", {
     .notNull()
     .references(() => FormTable.id),
   name: text("name").notNull(),
-  rule: jsonb("rule").notNull(),
+  rule: jsonb("rule").notNull(), // json logic
   errorMessage: text("error_message").notNull(),
   affectedElementInstances: jsonb("affected_element_instances").$type<string[]>(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -208,30 +211,15 @@ export const ConditionTable = createTable("condition", {
     .notNull()
     .references(() => FormTable.id),
   name: text("name"),
-  rule: jsonb("rule").notNull(),
+  rule: jsonb("rule").notNull(), // json logic
   action: conditionActionEnum("action").notNull(),
   targetType: targetTypeEnum("target_type").notNull(),
-  targetId: integer("target_id").notNull(),
+  targetId: integer("target_id").notNull(), // elementInstanceId, pageInstanceId, groupInstanceId
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 export type Condition = InferSelectModel<typeof ConditionTable>;
 export type NewCondition = InferInsertModel<typeof ConditionTable>;
-
-// 5. FORM SUBMISSIONS
-export const SubmissionTable = createTable("submission", {
-  id: serial("id").primaryKey(),
-  formId: integer("form_id")
-    .notNull()
-    .references(() => FormTable.id),
-  formVersion: integer("form_version").notNull(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  completed: boolean("completed").notNull().default(false),
-  submittedBy: text("submitted_by"),
-  data: jsonb("data").$type<Record<string, any>>().default({}),
-});
-export type Submission = InferSelectModel<typeof SubmissionTable>;
-export type NewSubmission = InferInsertModel<typeof SubmissionTable>;
 
 // 6. CHANGE TRACKING
 export const ChangeLogTable = createTable("change_log", {
@@ -248,7 +236,6 @@ export type ChangeLog = InferSelectModel<typeof ChangeLogTable>;
 export type NewChangeLog = InferInsertModel<typeof ChangeLogTable>;
 
 // Composite unique constraints
-// These would be defined separately in Drizzle
 
 // For tracking form version uniqueness
 export const formVersionUnique = createTable(
