@@ -50,9 +50,9 @@ type ElementProperties = {
 };
 
 type ValidationRule = {
-  type: string;
-  rule: any;
-  error_message: string;
+  type: string; // jsonLogic, regex, etc.
+  rule: any; // jsonLogic, regex, etc.
+  error_message: string; // error message to display if the rule is violated
 };
 
 // 1. TEMPLATE TABLES
