@@ -58,15 +58,15 @@ export default function RecentForms() {
               <BarChart className="h-4 w-4 mr-1 text-muted-foreground" />
               <span>{form.submissions} submissions</span>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" asChild className="w-full">
-                <Link href={`/form-builder?id=${form.id}`}>
+            <div className="grid grid-cols-2 gap-2">
+              <Button variant="outline" size="sm" asChild>
+                <Link href={`/form/builder?id=${form.id}`}>
                   <Edit className="h-3.5 w-3.5 mr-1" />
                   Edit
                 </Link>
               </Button>
-              <Button variant="outline" size="sm" asChild className="w-full">
-                <Link href={`/form-viewer/${form.id}`}>
+              <Button variant="outline" size="sm" asChild>
+                <Link href={`/form/viewer/${form.id}`}>
                   <Eye className="h-3.5 w-3.5 mr-1" />
                   View
                 </Link>

@@ -1,12 +1,14 @@
 "use client";
 
 import { Check, CircleDashed } from "lucide-react";
+import { cn } from "@repo/ui/lib/utils";
 import type { FormBuilderData } from "./form-builder";
+import type { Step } from "./form-builder";
 
 interface StepIndicatorProps {
-  steps: { id: string; label: string }[];
+  steps: { id: Step; label: string }[];
   currentStep: string;
-  goToStep: (stepId: string) => void;
+  goToStep: (stepId: Step) => void;
   formData: FormBuilderData;
 }
 
@@ -33,41 +35,25 @@ export default function StepIndicator({
   };
 
   return (
-    <div className="flex justify-between">
-      {steps.map((step, index) => {
+    <div className="flex justify-between px-4">
+      {steps.map((step) => {
         const isActive = step.id === currentStep;
         const isComplete = isStepComplete(step.id);
 
         return (
           <div key={step.id} className="flex flex-col items-center">
             <div
-              className={`
-                flex items-center justify-center w-10 h-10 rounded-full
-                ${
-                  isActive
-                    ? "bg-primary text-primary-foreground"
-                    : isComplete
-                      ? "bg-green-100 text-green-600 border border-green-600"
-                      : "bg-muted text-muted-foreground"
-                }
-                cursor-pointer
-              `}
+              className={cn(
+                "flex items-center justify-center w-10 h-10 rounded-full cursor-pointer",
+                isActive && "bg-primary text-primary-foreground",
+                isComplete && "bg-green-100 text-green-600 border border-green-600",
+                !isActive && !isComplete && "bg-muted text-muted-foreground",
+              )}
               onClick={() => goToStep(step.id)}
             >
               {isComplete ? <Check className="w-5 h-5" /> : <CircleDashed className="w-5 h-5" />}
             </div>
-            <span className={`mt-2 text-sm ${isActive ? "font-medium" : ""}`}>{step.label}</span>
-
-            {index < steps.length - 1 && (
-              <div
-                className="hidden sm:block absolute left-0 w-full h-0.5 bg-muted"
-                style={{
-                  top: "1.25rem",
-                  left: `calc(${((index + 0.5) * 100) / steps.length}%)`,
-                  width: `${100 / steps.length}%`,
-                }}
-              />
-            )}
+            <span className={cn("mt-2 text-sm", isActive && "font-medium")}>{step.label}</span>
           </div>
         );
       })}

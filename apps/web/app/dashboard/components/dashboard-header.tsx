@@ -1,7 +1,12 @@
 "use client";
 
 import { Button } from "@repo/ui/components/ui/button";
-import { Input } from "@repo/ui/components/ui/input";
+import {
+  InputBase,
+  InputBaseAdornment,
+  InputBaseControl,
+  InputBaseInput,
+} from "@repo/ui/components/ui/input-base";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,26 +20,32 @@ import Link from "next/link";
 
 export default function DashboardHeader() {
   return (
-    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
       <div>
-        <h1 className="text-3xl font-bold">Form Builder</h1>
-        <p className="text-muted-foreground">Create and manage your forms</p>
+        <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl">
+          Form Builder
+        </h1>
+        <p className="leading-7">Create and manage your forms</p>
       </div>
 
-      <div className="flex items-center gap-3 w-full md:w-auto">
-        <div className="relative w-full md:w-auto">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input type="search" placeholder="Search..." className="w-full md:w-[200px] pl-8" />
-        </div>
+      <div className="flex items-center gap-4 w-full md:w-auto">
+        <InputBase>
+          <InputBaseAdornment>
+            <Search />
+          </InputBaseAdornment>
+          <InputBaseControl>
+            <InputBaseInput placeholder="Search..." className="outline-0" />
+          </InputBaseControl>
+        </InputBase>
 
         <Button variant="outline" size="icon">
-          <Bell className="h-4 w-4" />
+          <Bell />
         </Button>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="icon">
-              <User className="h-4 w-4" />
+              <User />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -49,11 +60,11 @@ export default function DashboardHeader() {
         </DropdownMenu>
 
         <Button asChild>
-          <Link href="/form-builder" className="flex items-center gap-1">
+          <Link href="/form/builder" className="flex items-center gap-1 py-2">
             <Plus className="h-4 w-4" /> New Form
           </Link>
         </Button>
       </div>
-    </div>
+    </header>
   );
 }

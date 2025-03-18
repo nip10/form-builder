@@ -26,8 +26,12 @@ export default function FormStep() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Create Form</h2>
-      <p className="text-muted-foreground">Define the basic information for your form.</p>
+      <div>
+        <h2 className="scroll-m-20 text-3xl font-semibold tracking-tight first:mt-0">
+          Create Form
+        </h2>
+        <p className="text-muted-foreground">Define the basic information for your form.</p>
+      </div>
 
       <Form {...form}>
         <FormField
@@ -77,7 +81,9 @@ export default function FormStep() {
                 </FormControl>
                 <SelectContent>
                   <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="published">Published</SelectItem>
+                  <SelectItem value="published" disabled>
+                    Published
+                  </SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />

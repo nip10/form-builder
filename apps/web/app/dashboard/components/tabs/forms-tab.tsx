@@ -20,6 +20,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@repo/ui/components/ui/dropdown-menu";
+import {
+  InputBase,
+  InputBaseAdornment,
+  InputBaseControl,
+  InputBaseInput,
+} from "@repo/ui/components/ui/input-base";
 import { Edit, Eye, MoreHorizontal, Copy, Trash2, Search } from "lucide-react";
 import Link from "next/link";
 
@@ -75,18 +81,19 @@ export default function FormsTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="relative w-full max-w-sm">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Search forms..."
-            className="pl-8"
+      <InputBase>
+        <InputBaseAdornment>
+          <Search />
+        </InputBaseAdornment>
+        <InputBaseControl>
+          <InputBaseInput
+            placeholder="Search..."
+            className="outline-0"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
-        </div>
-      </div>
+        </InputBaseControl>
+      </InputBase>
 
       <div className="rounded-md border">
         <Table>
@@ -124,7 +131,7 @@ export default function FormsTab() {
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem asChild>
-                        <Link href={`/form-builder?id=${form.id}`} className="cursor-pointer">
+                        <Link href={`/form/builder?id=${form.id}`} className="cursor-pointer">
                           <Edit className="h-4 w-4 mr-2" />
                           Edit
                         </Link>

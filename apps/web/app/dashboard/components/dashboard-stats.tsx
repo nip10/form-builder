@@ -5,9 +5,10 @@ export default function DashboardStats() {
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total Forms</CardTitle>
-          <FileText className="h-4 w-4 text-muted-foreground" />
+        <CardHeader>
+          <CardTitle className="flex items-center gap-1">
+            Total Forms <FileText className="h-4 w-4 text-muted-foreground ml-1" />
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">12</div>
@@ -16,9 +17,10 @@ export default function DashboardStats() {
       </Card>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Form Submissions</CardTitle>
-          <Users className="h-4 w-4 text-muted-foreground" />
+        <CardHeader>
+          <CardTitle className="flex items-center gap-1">
+            Form Submissions <Users className="h-4 w-4 text-muted-foreground ml-1" />
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">573</div>
@@ -27,9 +29,10 @@ export default function DashboardStats() {
       </Card>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Active Pages</CardTitle>
-          <Layout className="h-4 w-4 text-muted-foreground" />
+        <CardHeader>
+          <CardTitle className="flex items-center gap-1">
+            Active Pages <Layout className="h-4 w-4 text-muted-foreground ml-1" />
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">34</div>
@@ -38,9 +41,10 @@ export default function DashboardStats() {
       </Card>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Form Elements</CardTitle>
-          <FormInput className="h-4 w-4 text-muted-foreground" />
+        <CardHeader>
+          <CardTitle className="flex items-center gap-1">
+            Form Elements <FormInput className="h-4 w-4 text-muted-foreground ml-1" />
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">128</div>

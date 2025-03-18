@@ -1,3 +1,5 @@
+"use client";
+
 import { Dictionary, getDictionary } from "@repo/internationalization";
 import { createContext, useContext, useEffect, useState } from "react";
 

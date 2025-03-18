@@ -73,6 +73,7 @@ export type NewElementTemplate = InferInsertModel<typeof ElementTemplateTable>;
 export const PageTemplateTable = createTable("page_template", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
+  subtitle: text("subtitle"),
   description: text("description"),
   validations: jsonb("validations").$type<ValidationRule[]>().default([]),
   properties: jsonb("properties").$type<Record<string, any>>().default({}), // not used yet
@@ -85,6 +86,7 @@ export type NewPageTemplate = InferInsertModel<typeof PageTemplateTable>;
 export const GroupTemplateTable = createTable("group_template", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
+  subtitle: text("subtitle"),
   description: text("description"),
   validations: jsonb("validations").$type<ValidationRule[]>().default([]),
   properties: jsonb("properties").$type<Record<string, any>>().default({}), // not used yet
@@ -260,3 +262,37 @@ export const submissionFormVersion = createTable(
   },
   (t) => [primaryKey({ columns: [t.formId, t.formVersion] })],
 );
+
+// 7. FORM SUBMISSIONS AND RESPONSES
+export const FormSubmissionTable = createTable("form_submission", {
+  id: serial("id").primaryKey(),
+  formId: integer("form_id")
+    .notNull()
+    .references(() => FormTable.id),
+  formVersion: integer("form_version").notNull(),
+  submittedAt: timestamp("submitted_at").notNull().defaultNow(),
+  submittedBy: text("submitted_by"),
+  status: text("status").notNull().default("completed"), // completed, partial, abandoned
+  metadata: jsonb("metadata").$type<Record<string, any>>().default({}),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+export type FormSubmission = InferSelectModel<typeof FormSubmissionTable>;
+export type NewFormSubmission = InferInsertModel<typeof FormSubmissionTable>;
+
+export const FormResponseTable = createTable("form_response", {
+  id: serial("id").primaryKey(),
+  submissionId: integer("submission_id")
+    .notNull()
+    .references(() => FormSubmissionTable.id),
+  elementInstanceId: integer("element_instance_id")
+    .notNull()
+    .references(() => ElementInstanceTable.id),
+  value: jsonb("value").notNull(), // Stores the actual response value
+  isValid: boolean("is_valid").notNull().default(true),
+  validationErrors: jsonb("validation_errors").$type<string[]>().default([]),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+export type FormResponse = InferSelectModel<typeof FormResponseTable>;
+export type NewFormResponse = InferInsertModel<typeof FormResponseTable>;

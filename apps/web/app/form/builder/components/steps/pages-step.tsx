@@ -80,7 +80,9 @@ export default function PagesStep() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold">Create Pages</h2>
+          <h2 className="scroll-m-20 text-3xl font-semibold tracking-tight first:mt-0">
+            Create Pages
+          </h2>
           <p className="text-muted-foreground">Add pages to your form groups.</p>
         </div>
         <Button onClick={handleAddPage} className="flex items-center gap-1">

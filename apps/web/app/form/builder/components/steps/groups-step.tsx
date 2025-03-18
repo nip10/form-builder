@@ -59,7 +59,9 @@ export default function GroupsStep() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold">Create Groups</h2>
+          <h2 className="scroll-m-20 text-3xl font-semibold tracking-tight first:mt-0">
+            Create Groups
+          </h2>
           <p className="text-muted-foreground">Add groups to organize your form content.</p>
         </div>
         <Button onClick={handleAddGroup} className="flex items-center gap-1">

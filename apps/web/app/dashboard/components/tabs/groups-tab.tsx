@@ -10,7 +10,6 @@ import {
   TableRow,
 } from "@repo/ui/components/ui/table";
 import { Button } from "@repo/ui/components/ui/button";
-import { Input } from "@repo/ui/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,6 +19,12 @@ import {
   DropdownMenuTrigger,
 } from "@repo/ui/components/ui/dropdown-menu";
 import { Edit, MoreHorizontal, Copy, Trash2, Search } from "lucide-react";
+import {
+  InputBase,
+  InputBaseAdornment,
+  InputBaseControl,
+  InputBaseInput,
+} from "@repo/ui/components/ui/input-base";
 
 export default function GroupsTab() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -75,18 +80,19 @@ export default function GroupsTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="relative w-full max-w-sm">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Search groups..."
-            className="pl-8"
+      <InputBase>
+        <InputBaseAdornment>
+          <Search />
+        </InputBaseAdornment>
+        <InputBaseControl>
+          <InputBaseInput
+            placeholder="Search..."
+            className="outline-0"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
-        </div>
-      </div>
+        </InputBaseControl>
+      </InputBase>
 
       <div className="rounded-md border">
         <Table>

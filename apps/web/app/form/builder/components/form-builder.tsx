@@ -18,7 +18,7 @@ import StepIndicator from "./step-indicator";
 // Define the form data type based on our schema
 export type FormBuilderData = z.infer<typeof formSchema>;
 
-const steps = [
+const steps: { id: Step; label: string }[] = [
   { id: "form", label: "Form" },
   { id: "groups", label: "Groups" },
   { id: "pages", label: "Pages" },
@@ -26,8 +26,10 @@ const steps = [
   { id: "review", label: "Review" },
 ];
 
+export type Step = "form" | "groups" | "pages" | "elements" | "review";
+
 export default function FormBuilder() {
-  const [currentStep, setCurrentStep] = useState<string>("form");
+  const [currentStep, setCurrentStep] = useState<Step>("form");
 
   // Initialize form with React Hook Form and Zod validation
   const methods = useForm<FormBuilderData>({
@@ -94,7 +96,7 @@ export default function FormBuilder() {
   };
 
   // Navigate to a specific step
-  const goToStep = (stepId: string) => {
+  const goToStep = (stepId: Step) => {
     setCurrentStep(stepId);
   };
 
@@ -106,12 +108,14 @@ export default function FormBuilder() {
             <StepIndicator
               steps={steps}
               currentStep={currentStep}
-              goToStep={goToStep}
+              goToStep={(stepId: Step) => {
+                goToStep(stepId);
+              }}
               formData={formData}
             />
 
             <div className="mt-8">
-              <Tabs value={currentStep} onValueChange={setCurrentStep}>
+              <Tabs value={currentStep} onValueChange={(value) => setCurrentStep(value as Step)}>
                 <TabsContent value="form">
                   <FormStep />
                 </TabsContent>
