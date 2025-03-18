@@ -146,11 +146,11 @@ export default function GroupsStep() {
 
               <CardFooter className="flex justify-end py-3">
                 {editingIndex === index ? (
-                  <Button variant="outline" onClick={() => setEditingIndex(null)}>
+                  <Button type="button" variant="outline" onClick={() => setEditingIndex(null)}>
                     Done
                   </Button>
                 ) : (
-                  <Button variant="outline" onClick={() => setEditingIndex(index)}>
+                  <Button type="button" variant="outline" onClick={() => setEditingIndex(index)}>
                     Edit
                   </Button>
                 )}
