@@ -7,6 +7,8 @@ import type { z } from "zod";
 import { Button } from "@repo/ui/components/ui/button";
 import { Card, CardContent } from "@repo/ui/components/ui/card";
 import { Tabs, TabsContent } from "@repo/ui/components/ui/tabs";
+import { toast } from "@repo/ui/components/ui/use-toast";
+import { useRouter } from "next/navigation";
 import { formSchema } from "@/lib/schemas/form-schema";
 import FormStep from "./steps/form-step";
 import GroupsStep from "./steps/groups-step";
@@ -18,6 +20,8 @@ import StepIndicator from "./step-indicator";
 // Define the form data type based on our schema
 export type FormBuilderData = z.infer<typeof formSchema>;
 
+export type Step = "form" | "groups" | "pages" | "elements" | "review";
+
 const steps: { id: Step; label: string }[] = [
   { id: "form", label: "Form" },
   { id: "groups", label: "Groups" },
@@ -26,10 +30,10 @@ const steps: { id: Step; label: string }[] = [
   { id: "review", label: "Review" },
 ];
 
-export type Step = "form" | "groups" | "pages" | "elements" | "review";
-
 export default function FormBuilder() {
   const [currentStep, setCurrentStep] = useState<Step>("form");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const router = useRouter();
 
   // Initialize form with React Hook Form and Zod validation
   const methods = useForm<FormBuilderData>({
@@ -47,35 +51,81 @@ export default function FormBuilder() {
     mode: "onChange",
   });
 
-  const {
-    handleSubmit,
-    trigger,
-    watch,
-    formState: { errors, isValid },
-  } = methods;
+  const { handleSubmit, trigger, watch } = methods;
   const formData = watch();
 
   // Handle form submission
   const onSubmit = async (data: FormBuilderData) => {
-    console.log("Form submitted:", data);
-    // Here you would typically send the data to your API
+    setIsSubmitting(true);
+
     try {
-      // Example API call (replace with your actual implementation)
-      // const response = await fetch('/api/forms', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(data),
-      // });
-      // const result = await response.json();
-      alert("Form created successfully!");
+      // Send the data to our API endpoint
+      const response = await fetch("/api/forms/builder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        // Show more detailed error if available
+        let errorMessage = result.error || "Form creation failed";
+        if (result.details) {
+          errorMessage += `: ${result.details}`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      toast({
+        title: "Success!",
+        description: "Form created successfully.",
+        variant: "default",
+      });
+
+      // Redirect to the form view page after a short delay
+      if (result.form?.id) {
+        setTimeout(() => {
+          router.push(`/form/${result.form.id}`);
+        }, 1500);
+      }
     } catch (error) {
       console.error("Error creating form:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to create form",
+        variant: "destructive",
+        duration: 6000, // Show error for longer
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  // Navigate to the next step
+  // Validate the current step before proceeding
   const handleNext = async () => {
-    const isStepValid = await trigger(currentStep as any);
+    // Only validate the current step fields
+    let fieldsToValidate: string[] = [];
+
+    switch (currentStep) {
+      case "form":
+        fieldsToValidate = ["form"];
+        break;
+      case "groups":
+        fieldsToValidate = ["groups"];
+        break;
+      case "pages":
+        fieldsToValidate = ["pages"];
+        break;
+      case "elements":
+        fieldsToValidate = ["elements"];
+        break;
+      case "review":
+        // No validation needed on review page
+        break;
+    }
+
+    const isStepValid = await trigger(fieldsToValidate as any);
 
     if (isStepValid) {
       const currentIndex = steps.findIndex((step) => step.id === currentStep);
@@ -83,6 +133,13 @@ export default function FormBuilder() {
       if (nextStep) {
         setCurrentStep(nextStep.id);
       }
+    } else {
+      // Show toast notification for validation errors
+      toast({
+        title: "Validation Error",
+        description: "Please fix the errors before proceeding.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -135,19 +192,28 @@ export default function FormBuilder() {
             </div>
 
             <div className="flex justify-between mt-8">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handlePrevious}
-                disabled={currentStep === "form"}
-              >
-                Previous
-              </Button>
+              {currentStep !== "form" && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handlePrevious}
+                  disabled={isSubmitting}
+                >
+                  Previous
+                </Button>
+              )}
 
               {currentStep === "review" ? (
-                <Button type="submit">Create Form</Button>
+                <Button type="submit" disabled={isSubmitting} className="ml-auto">
+                  {isSubmitting ? "Creating..." : "Create Form"}
+                </Button>
               ) : (
-                <Button type="button" onClick={handleNext}>
+                <Button
+                  type="button"
+                  onClick={handleNext}
+                  disabled={isSubmitting}
+                  className="ml-auto"
+                >
                   Next
                 </Button>
               )}

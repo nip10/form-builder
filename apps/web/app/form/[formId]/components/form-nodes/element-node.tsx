@@ -1,4 +1,4 @@
-import { Handle, Position } from "reactflow";
+import { Handle, Position } from "@xyflow/react";
 import {
   FormInput,
   CheckSquare,
@@ -9,6 +9,8 @@ import {
   ImageIcon,
   AlignLeft,
 } from "lucide-react";
+import { typeColors } from "../form-tree-view";
+import { cn } from "@repo/ui/lib/utils";
 
 interface ElementNodeProps {
   data: {
@@ -49,7 +51,11 @@ export default function ElementNode({ data, selected }: ElementNodeProps) {
 
   return (
     <div
-      className={`p-3 rounded-md border-2 ${selected ? "border-primary" : "border-border"} bg-background shadow-sm min-w-[150px]`}
+      className={cn(
+        "p-3 rounded-md border-2 shadow-sm min-w-[150px]",
+        typeColors.element.split(" ")[0], // Taking just the bg color without hover
+        selected ? "border-primary " + typeColors.selected : "border-transparent",
+      )}
     >
       <Handle type="target" position={Position.Left} className="!bg-primary" />
       <div className="flex items-center gap-2">

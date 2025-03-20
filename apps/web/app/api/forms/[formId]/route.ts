@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { FormRepository } from "@/lib/repositories/form-repository";
 import { z } from "zod";
+import { formStatusEnum } from "@repo/database/src/schema";
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     formId: string;
-  };
+  }>;
 }
 
 const formRepository = new FormRepository();
@@ -17,15 +18,17 @@ const formIdSchema = z.coerce.number().int().positive();
 const formUpdateSchema = z.object({
   title: z.string().optional(),
   description: z.string().optional(),
-  status: z.enum(["draft", "published"]).optional(),
-  // Add other fields as needed
+  status: z.enum(formStatusEnum.enumValues).optional(),
 });
 
 // GET /api/forms/[formId] - Get a form by ID with populated pages, elements, and validations
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
+    // Await the params Promise directly
+    const resolvedParams = await params;
+
     // Validate and parse the form ID
-    const formIdResult = formIdSchema.safeParse(params.formId);
+    const formIdResult = formIdSchema.safeParse(resolvedParams.formId);
 
     if (!formIdResult.success) {
       return NextResponse.json({ error: "Invalid form ID format" }, { status: 400 });
@@ -64,8 +67,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 // PUT /api/forms/[formId] - Update a form
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
+    // Await the params Promise directly
+    const resolvedParams = await params;
+
     // Validate and parse the form ID
-    const formIdResult = formIdSchema.safeParse(params.formId);
+    const formIdResult = formIdSchema.safeParse(resolvedParams.formId);
 
     if (!formIdResult.success) {
       return NextResponse.json({ error: "Invalid form ID format" }, { status: 400 });
@@ -108,8 +114,11 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 // DELETE /api/forms/[formId] - Delete a form
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
+    // Await the params Promise directly
+    const resolvedParams = await params;
+
     // Validate and parse the form ID
-    const formIdResult = formIdSchema.safeParse(params.formId);
+    const formIdResult = formIdSchema.safeParse(resolvedParams.formId);
 
     if (!formIdResult.success) {
       return NextResponse.json({ error: "Invalid form ID format" }, { status: 400 });

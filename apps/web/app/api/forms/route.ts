@@ -46,7 +46,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const form = await formRepository.createForm({
       title: data.title,
       description: data.description,
-      createdBy: data.owner_id,
     });
 
     return NextResponse.json({ form }, { status: 201 });

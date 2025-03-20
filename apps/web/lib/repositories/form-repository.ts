@@ -17,6 +17,7 @@ import {
   Condition,
   ElementTemplate,
   FormValidation,
+  ElementTemplateTable,
 } from "@repo/database/src/schema";
 import { eq, desc, inArray } from "drizzle-orm";
 
@@ -72,6 +73,15 @@ export class FormRepository {
       orderBy: [ElementInstanceTable.orderIndex],
     });
 
+    // Fetch element templates for all elements
+    const elementTemplateIds = elements.map((e) => e.templateId);
+    const elementTemplates =
+      elementTemplateIds.length > 0
+        ? await db.query.ElementTemplateTable.findMany({
+            where: inArray(ElementTemplateTable.id, elementTemplateIds),
+          })
+        : [];
+
     // Get form validations
     const validations = await db.query.FormValidationTable.findMany({
       where: eq(FormValidationTable.formId, id),
@@ -82,9 +92,18 @@ export class FormRepository {
       where: eq(ConditionTable.formId, id),
     });
 
-    // Map pages to their groups and add elements
+    // Map pages to their groups and add elements with their templates
     const pagesWithElements = pages.map((page) => {
-      const pageElements = elements.filter((e) => e.pageInstanceId === page.id);
+      const pageElements = elements
+        .filter((e) => e.pageInstanceId === page.id)
+        .map((element) => {
+          // Find the matching template for this element
+          const template = elementTemplates.find((t) => t.id === element.templateId);
+          return {
+            ...element,
+            template: template || undefined,
+          };
+        });
       return {
         ...page,
         elements: pageElements,
@@ -207,30 +226,80 @@ export class FormRepository {
   // Element operations
   async createElement(
     pageId: PageInstance["id"],
-    data: Partial<NewElementInstance>,
-  ): Promise<ElementInstance> {
-    // Get the count of existing elements to determine order
-    const existingElements = await db.query.ElementInstanceTable.findMany({
-      where: eq(ElementInstanceTable.pageInstanceId, pageId),
-    });
+    data: {
+      type?: string;
+      label?: string;
+      required?: boolean;
+      properties?: any;
+      templateId?: number;
+      orderIndex?: number;
+    },
+  ): Promise<ElementInstance & { template?: ElementTemplate }> {
+    try {
+      // Find or create a template for this element type
+      let templateId = data.templateId || 1;
 
-    const [element] = await db
-      .insert(ElementInstanceTable)
-      .values({
-        templateId: data.templateId || 1,
-        pageInstanceId: pageId,
-        orderIndex: data.orderIndex || existingElements.length + 1,
-        required: data.required || false,
-        label: data.label,
-        properties: data.properties || {},
-        validations: data.validations || [],
-      })
-      .returning();
+      // If a type is provided, find or create a template with that type
+      if (data.type) {
+        const templates = await db.query.ElementTemplateTable.findMany({
+          where: eq(ElementTemplateTable.type, data.type as any),
+        });
 
-    if (!element) {
+        if (templates.length > 0 && templates[0]) {
+          // Use existing template
+          templateId = templates[0].id;
+        } else {
+          // Create a new template
+          const [newTemplate] = await db
+            .insert(ElementTemplateTable)
+            .values({
+              type: data.type as any,
+              label: data.label || "Untitled Element",
+              required: data.required ?? false,
+              properties: data.properties || {},
+            })
+            .returning();
+
+          if (newTemplate) {
+            templateId = newTemplate.id;
+          }
+        }
+      }
+
+      // Get the count of existing elements to determine order
+      const existingElements = await db.query.ElementInstanceTable.findMany({
+        where: eq(ElementInstanceTable.pageInstanceId, pageId),
+      });
+
+      // Create the element instance
+      const [element] = await db
+        .insert(ElementInstanceTable)
+        .values({
+          templateId,
+          pageInstanceId: pageId,
+          orderIndex: data.orderIndex || existingElements.length + 1,
+          label: data.label,
+          properties: data.properties || {},
+        })
+        .returning();
+
+      if (!element) {
+        throw new Error("Failed to create element");
+      }
+
+      // Get the template for this element
+      const template = await db.query.ElementTemplateTable.findFirst({
+        where: eq(ElementTemplateTable.id, templateId),
+      });
+
+      // Return element with template
+      return {
+        ...element,
+        template,
+      };
+    } catch (error) {
+      console.error("Error creating element:", error);
       throw new Error("Failed to create element");
     }
-
-    return element;
   }
 }

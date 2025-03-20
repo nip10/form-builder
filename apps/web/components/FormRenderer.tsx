@@ -41,19 +41,53 @@ interface ValidationResult {
   errors: Array<{ elementId?: string; message: string }>;
 }
 
+// Extended ElementInstance type for UI rendering
+interface ExtendedElementInstance extends ElementInstance {
+  template?: ElementTemplate;
+}
+
+// Use only the types from the schema
+type ElementType =
+  | "text_input"
+  | "number_input"
+  | "checkbox"
+  | "checkbox_group"
+  | "radio"
+  | "radio_group"
+  | "select"
+  | "textarea"
+  | "image"
+  | "date"
+  | "range"
+  | "rating"
+  | "slider"
+  | "switch"
+  | "toggle"
+  | "";
+
 // Helper function to get element properties
-const getElementProperty = (
-  element: ElementInstance & { template?: ElementTemplate },
-  key: string,
-  defaultValue?: any,
-) => {
-  const properties = element.template?.properties || {};
-  const propertiesOverride = element.propertiesOverride || {};
-  return (propertiesOverride as any)[key] !== undefined
-    ? (propertiesOverride as any)[key]
-    : (properties as any)[key] !== undefined
-      ? (properties as any)[key]
-      : defaultValue;
+const getElementProperty = (element: ExtendedElementInstance, key: string, defaultValue?: any) => {
+  // Make sure the element and template exist
+  if (!element) return defaultValue;
+
+  // Get properties from template (if available)
+  const templateProperties = element.template?.properties || {};
+
+  // Get element properties (if available)
+  const elementProperties = element.properties || {};
+
+  // First check element properties
+  if (elementProperties && typeof elementProperties === "object" && key in elementProperties) {
+    return elementProperties[key];
+  }
+
+  // Then check template properties
+  if (templateProperties && typeof templateProperties === "object" && key in templateProperties) {
+    return templateProperties[key];
+  }
+
+  // Finally return default value
+  return defaultValue;
 };
 
 // Remove all the duplicate type definitions
@@ -64,25 +98,36 @@ interface FormRendererProps {
 }
 
 interface FormElementProps {
-  element: ElementInstance & { template?: ElementTemplate };
+  element: ExtendedElementInstance;
   value: any;
   onChange: (value: any) => void;
   error?: string;
 }
 
 const FormElement: React.FC<FormElementProps> = ({ element, value, onChange, error }) => {
-  const type = element.template?.type || "";
-  const label = element.labelOverride || element.template?.label || "";
+  // Get the element type from the template with fallback
+  const type = (element.template?.type as ElementType) || "";
+  if (!type) {
+    console.error(`Element ${element.id} has no type defined in its template`);
+  }
+  const label = element.template?.label || "";
 
+  // Add a debug log to help when developing
+  if (process.env.NODE_ENV === "development") {
+    console.debug(`Rendering element ${element.id} with type: ${type}`);
+  }
+
+  // Use template.required for validation indicators
+  const isRequired = element.template?.required || false;
+
+  // Handle all possible element types from the ElementType
   switch (type) {
     case "text_input":
       return (
         <div className="grid gap-2">
           <Label
             htmlFor={element.id.toString()}
-            className={
-              element.required ? 'after:content-["*"] after:ml-0.5 after:text-red-500' : ""
-            }
+            className={isRequired ? 'after:content-["*"] after:ml-0.5 after:text-red-500' : ""}
           >
             {label}
           </Label>
@@ -101,9 +146,7 @@ const FormElement: React.FC<FormElementProps> = ({ element, value, onChange, err
         <div className="grid gap-2">
           <Label
             htmlFor={element.id.toString()}
-            className={
-              element.required ? 'after:content-["*"] after:ml-0.5 after:text-red-500' : ""
-            }
+            className={isRequired ? 'after:content-["*"] after:ml-0.5 after:text-red-500' : ""}
           >
             {label}
           </Label>
@@ -121,36 +164,13 @@ const FormElement: React.FC<FormElementProps> = ({ element, value, onChange, err
         </div>
       );
 
-    case "email":
-      return (
-        <div className="grid gap-2">
-          <Label
-            htmlFor={element.id.toString()}
-            className={
-              element.required ? 'after:content-["*"] after:ml-0.5 after:text-red-500' : ""
-            }
-          >
-            {label}
-          </Label>
-          <Input
-            id={element.id.toString()}
-            type="email"
-            value={value || ""}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder={getElementProperty(element, "placeholder", "")}
-          />
-          {error && <p className="text-sm text-red-500">{error}</p>}
-        </div>
-      );
-
+    // For backward compatibility, handle text_input with email type property
     case "textarea":
       return (
         <div className="grid gap-2">
           <Label
             htmlFor={element.id.toString()}
-            className={
-              element.required ? 'after:content-["*"] after:ml-0.5 after:text-red-500' : ""
-            }
+            className={isRequired ? 'after:content-["*"] after:ml-0.5 after:text-red-500' : ""}
           >
             {label}
           </Label>
@@ -172,9 +192,7 @@ const FormElement: React.FC<FormElementProps> = ({ element, value, onChange, err
           <div className="grid gap-1.5 leading-none">
             <Label
               htmlFor={element.id.toString()}
-              className={
-                element.required ? 'after:content-["*"] after:ml-0.5 after:text-red-500' : ""
-              }
+              className={isRequired ? 'after:content-["*"] after:ml-0.5 after:text-red-500' : ""}
             >
               {label}
             </Label>
@@ -184,13 +202,12 @@ const FormElement: React.FC<FormElementProps> = ({ element, value, onChange, err
       );
 
     case "radio":
+    case "radio_group":
       const options = getElementProperty(element, "options", []) || [];
       return (
         <div className="grid gap-2">
           <Label
-            className={
-              element.required ? 'after:content-["*"] after:ml-0.5 after:text-red-500' : ""
-            }
+            className={isRequired ? 'after:content-["*"] after:ml-0.5 after:text-red-500' : ""}
           >
             {label}
           </Label>
@@ -212,9 +229,7 @@ const FormElement: React.FC<FormElementProps> = ({ element, value, onChange, err
         <div className="grid gap-2">
           <Label
             htmlFor={element.id.toString()}
-            className={
-              element.required ? 'after:content-["*"] after:ml-0.5 after:text-red-500' : ""
-            }
+            className={isRequired ? 'after:content-["*"] after:ml-0.5 after:text-red-500' : ""}
           >
             {label}
           </Label>
@@ -241,9 +256,7 @@ const FormElement: React.FC<FormElementProps> = ({ element, value, onChange, err
         <div className="grid gap-2">
           <Label
             htmlFor={element.id.toString()}
-            className={
-              element.required ? 'after:content-["*"] after:ml-0.5 after:text-red-500' : ""
-            }
+            className={isRequired ? 'after:content-["*"] after:ml-0.5 after:text-red-500' : ""}
           >
             {label}
           </Label>
@@ -254,19 +267,6 @@ const FormElement: React.FC<FormElementProps> = ({ element, value, onChange, err
             onChange={(e) => onChange(e.target.value)}
           />
           {error && <p className="text-sm text-red-500">{error}</p>}
-        </div>
-      );
-
-    case "text":
-      return (
-        <div className="space-y-1">
-          {label && <h3 className="text-lg font-medium">{label}</h3>}
-          <div
-            className="text-sm text-gray-700"
-            dangerouslySetInnerHTML={{
-              __html: getElementProperty(element, "content", "") || "",
-            }}
-          />
         </div>
       );
 
@@ -289,8 +289,25 @@ const FormElement: React.FC<FormElementProps> = ({ element, value, onChange, err
         </div>
       );
 
+    // Handle other element types with default UI
     default:
-      return <div>Unsupported element type: {type}</div>;
+      if (type) {
+        console.warn(`Rendering default UI for element type: ${type}`);
+      }
+      return (
+        <div className="grid gap-2">
+          <Label htmlFor={element.id.toString()}>
+            {label} ({type})
+          </Label>
+          <Input
+            id={element.id.toString()}
+            value={value || ""}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder="Enter value..."
+          />
+          {error && <p className="text-sm text-red-500">{error}</p>}
+        </div>
+      );
   }
 };
 
@@ -427,18 +444,35 @@ const FormRenderer: React.FC<FormRendererProps> = ({ form, onSubmit }) => {
     try {
       // Use client-side validation
       const currentPage = sortedPages[currentPageIndex];
-      const result = validatePageBasic(currentPage, formData);
+
+      // For client-side validation, check that required fields have values
+      const errors: Array<{ elementId?: string; message: string }> = [];
+
+      if (currentPage.elements) {
+        for (const element of currentPage.elements) {
+          // Check if the element is required by its template
+          if (element.template?.required) {
+            const value = formData[element.id.toString()];
+            if (value === undefined || value === null || value === "") {
+              errors.push({
+                elementId: element.id.toString(),
+                message: `${element.template?.label || "Field"} is required`,
+              });
+            }
+          }
+        }
+      }
 
       // Update validation errors
       const newErrors: Record<string, string> = {};
-      result.errors.forEach((error: any) => {
+      errors.forEach((error) => {
         if (error.elementId) {
           newErrors[error.elementId] = error.message;
         }
       });
 
       setValidationErrors(newErrors);
-      return result.valid;
+      return errors.length === 0;
     } catch (error: any) {
       console.error("Error validating page:", error);
       return false;
@@ -482,10 +516,20 @@ const FormRenderer: React.FC<FormRendererProps> = ({ form, onSubmit }) => {
 
     // Validate each page
     for (const page of sortedPages) {
-      const pageResult = validatePageBasic(page, formData);
-      if (!pageResult.valid) {
-        result.valid = false;
-        result.errors.push(...pageResult.errors);
+      if (page.elements) {
+        for (const element of page.elements) {
+          // Check if the element is required by its template
+          if (element.template?.required) {
+            const value = formData[element.id.toString()];
+            if (value === undefined || value === null || value === "") {
+              result.errors.push({
+                elementId: element.id.toString(),
+                message: `${element.template?.label || "Field"} is required`,
+              });
+              result.valid = false;
+            }
+          }
+        }
       }
     }
 
@@ -509,7 +553,7 @@ const FormRenderer: React.FC<FormRendererProps> = ({ form, onSubmit }) => {
     }
   };
 
-  const isElementVisible = (element: ElementInstance & { template?: ElementTemplate }) => {
+  const isElementVisible = (element: ExtendedElementInstance) => {
     const elementKey = `element_${element.id.toString()}`;
     return visibility[elementKey] !== false; // Default to visible if not specified
   };

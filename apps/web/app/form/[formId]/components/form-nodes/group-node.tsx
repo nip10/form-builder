@@ -1,5 +1,7 @@
-import { Handle, Position } from "reactflow";
+import { Handle, Position } from "@xyflow/react";
 import { Folder } from "lucide-react";
+import { typeColors } from "../form-tree-view";
+import { cn } from "@repo/ui/lib/utils";
 
 interface GroupNodeProps {
   data: {
@@ -12,7 +14,11 @@ interface GroupNodeProps {
 export default function GroupNode({ data, selected }: GroupNodeProps) {
   return (
     <div
-      className={`p-3 rounded-md border-2 ${selected ? "border-primary" : "border-border"} bg-background shadow-sm min-w-[150px]`}
+      className={cn(
+        "p-3 rounded-md border-2 shadow-sm min-w-[150px]",
+        typeColors.group.split(" ")[0], // Taking just the bg color without hover
+        selected ? "border-primary " + typeColors.selected : "border-transparent",
+      )}
     >
       <Handle type="target" position={Position.Top} className="!bg-primary" />
       <div className="flex items-center gap-2">

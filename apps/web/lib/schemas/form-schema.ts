@@ -1,3 +1,4 @@
+import { elementTypeEnum } from "@repo/database/src/schema";
 import { z } from "zod";
 
 // Define the element properties schema
@@ -50,18 +51,7 @@ export const formSchema = z.object({
   elements: z.array(
     z.object({
       id: z.string(),
-      type: z.enum([
-        "text_input",
-        "number_input",
-        "email",
-        "checkbox",
-        "radio",
-        "select",
-        "textarea",
-        "image",
-        "text",
-        "date",
-      ]),
+      type: z.enum(elementTypeEnum.enumValues),
       label: z.string().min(1, "Element label is required"),
       pageId: z.string().min(1, "Page is required"),
       required: z.boolean().default(false),

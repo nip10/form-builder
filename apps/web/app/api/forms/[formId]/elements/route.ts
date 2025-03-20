@@ -12,9 +12,9 @@ import { eq } from "drizzle-orm";
 import { FormRepository } from "@/lib/repositories/form-repository";
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     formId: string;
-  };
+  }>;
 }
 
 const formRepository = new FormRepository();
@@ -41,8 +41,11 @@ const elementSchema = z.object({
 // POST /api/forms/[formId]/elements - Add element to a page
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
+    // Await the params Promise directly
+    const resolvedParams = await params;
+
     // Validate and parse the form ID
-    const formIdResult = formIdSchema.safeParse(params.formId);
+    const formIdResult = formIdSchema.safeParse(resolvedParams.formId);
 
     if (!formIdResult.success) {
       return NextResponse.json({ error: "Invalid form ID format" }, { status: 400 });
@@ -92,8 +95,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         label: element.label,
         defaultValue: element.default_value,
         properties: element.properties,
-        createdAt: new Date(),
-        updatedAt: new Date(),
       })
       .returning();
 
@@ -113,10 +114,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         templateId: newElementTemplate.id,
         pageInstanceId: pageId,
         orderIndex: existingElements.length + 1,
-        required: element.required,
-        validations: element.validations,
-        createdAt: new Date(),
-        updatedAt: new Date(),
       })
       .returning();
 

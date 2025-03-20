@@ -20,6 +20,15 @@ import { useState } from "react";
 import { FormWithRelations } from "@/lib/repositories/form-repository";
 import { SelectedElement, SelectedElementType } from "./form-viewer";
 
+// Define consistent colors for form elements
+export const typeColors = {
+  form: "bg-blue-50 hover:bg-blue-100",
+  group: "bg-purple-50 hover:bg-purple-100",
+  page: "bg-amber-50 hover:bg-amber-100",
+  element: "bg-green-50 hover:bg-green-100",
+  selected: "ring-2 ring-offset-1",
+};
+
 interface FormTreeViewProps {
   formData: FormWithRelations;
   selectedElement: SelectedElement | null;
@@ -119,8 +128,9 @@ export default function FormTreeView({
       {/* Form root */}
       <div
         className={cn(
-          "flex items-center p-2 rounded-md cursor-pointer hover:bg-muted",
-          selectedElement?.type === "form" && "bg-muted",
+          "flex items-center p-2 rounded-md cursor-pointer",
+          typeColors.form,
+          selectedElement?.type === "form" && typeColors.selected,
         )}
         onClick={() => onElementSelect("form", formData.id)}
       >
@@ -134,8 +144,11 @@ export default function FormTreeView({
           <div key={group.id}>
             <div
               className={cn(
-                "flex items-center p-2 rounded-md cursor-pointer hover:bg-muted",
-                selectedElement?.type === "group" && selectedElement.id === group.id && "bg-muted",
+                "flex items-center p-2 rounded-md cursor-pointer",
+                typeColors.group,
+                selectedElement?.type === "group" &&
+                  selectedElement.id === group.id &&
+                  typeColors.selected,
               )}
               onClick={() => onElementSelect("group", group.id)}
             >
@@ -163,10 +176,11 @@ export default function FormTreeView({
                   <div key={page.id}>
                     <div
                       className={cn(
-                        "flex items-center p-2 rounded-md cursor-pointer hover:bg-muted",
+                        "flex items-center p-2 rounded-md cursor-pointer",
+                        typeColors.page,
                         selectedElement?.type === "page" &&
                           selectedElement.id === page.id &&
-                          "bg-muted",
+                          typeColors.selected,
                       )}
                       onClick={() => onElementSelect("page", page.id)}
                     >
@@ -197,10 +211,11 @@ export default function FormTreeView({
                           <div
                             key={element.id}
                             className={cn(
-                              "flex items-center p-2 rounded-md cursor-pointer hover:bg-muted",
+                              "flex items-center p-2 rounded-md cursor-pointer",
+                              typeColors.element,
                               selectedElement?.type === "element" &&
                                 selectedElement.id === element.id &&
-                                "bg-muted",
+                                typeColors.selected,
                             )}
                             onClick={() => onElementSelect("element", element.id)}
                           >
@@ -214,7 +229,9 @@ export default function FormTreeView({
                                     .indexOf(element) + 1
                                 }`}
                             </span>
-                            {element.required && <span className="ml-1 text-red-500">*</span>}
+                            {(element as any).required && (
+                              <span className="ml-1 text-red-500">*</span>
+                            )}
                           </div>
                         ))}
                       </div>

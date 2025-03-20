@@ -13,9 +13,9 @@ import { z } from "zod";
 import jsonLogic from "json-logic-js";
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     formId: string;
-  };
+  }>;
 }
 
 const formRepository = new FormRepository();
@@ -50,7 +50,8 @@ const conditionEvaluationSchema = z.object({
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     // Validate and parse the form ID
-    const formIdResult = formIdSchema.safeParse(params.formId);
+    const resolvedParams = await params;
+    const formIdResult = formIdSchema.safeParse(resolvedParams.formId);
 
     if (!formIdResult.success) {
       return NextResponse.json({ error: "Invalid form ID format" }, { status: 400 });
@@ -96,13 +97,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const combinedElement = {
       ...elementTemplate,
       id: elementInstance.id, // Use instance ID for validation results
-      required: elementInstance.required,
-      validations: elementInstance.validations || [],
       // Override template properties with instance-specific ones if they exist
-      label: elementInstance.labelOverride || elementTemplate.label,
+      label: elementTemplate.label,
       properties: {
         ...(elementTemplate.properties || {}),
-        ...(elementInstance.propertiesOverride || {}),
       },
     };
 
@@ -133,7 +131,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
     // Validate and parse the form ID
-    const formIdResult = formIdSchema.safeParse(params.formId);
+    const resolvedParams = await params;
+    const formIdResult = formIdSchema.safeParse(resolvedParams.formId);
 
     if (!formIdResult.success) {
       return NextResponse.json({ error: "Invalid form ID format" }, { status: 400 });
@@ -208,13 +207,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       const combinedElement = {
         ...template,
         id: instance.id, // Use instance ID for validation results
-        required: instance.required,
-        validations: instance.validations || [],
         // Override template properties with instance-specific ones if they exist
-        label: instance.labelOverride || template.label,
+        label: template.label,
         properties: {
           ...(template.properties || {}),
-          ...(instance.propertiesOverride || {}),
         },
       };
 
@@ -247,7 +243,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
     // Validate and parse the form ID
-    const formIdResult = formIdSchema.safeParse(params.formId);
+    const resolvedParams = await params;
+    const formIdResult = formIdSchema.safeParse(resolvedParams.formId);
 
     if (!formIdResult.success) {
       return NextResponse.json({ error: "Invalid form ID format" }, { status: 400 });
@@ -289,7 +286,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     const groups = formWithRelations.groups;
-    const pages = formWithRelations.pages;
+    const pages = formWithRelations.groups.flatMap((group) => group.pages);
 
     // Initialize visibility (all visible by default)
     const visibility: Record<string, boolean> = {};

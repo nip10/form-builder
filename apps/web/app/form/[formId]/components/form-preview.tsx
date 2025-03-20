@@ -110,16 +110,12 @@ export default function FormPreview({ formData }: FormPreviewProps) {
       case "text_input":
         return (
           <div className="space-y-2" key={element.id}>
-            <Label htmlFor={element.id.toString()}>
-              {element.label || element.template.label}
-              {element.required && <span className="text-red-500 ml-1">*</span>}
-            </Label>
+            <Label htmlFor={element.id.toString()}>{element.label || element.template.label}</Label>
             <Input
               id={element.id.toString()}
               value={value}
               placeholder={element.properties?.placeholder || ""}
               onChange={(e) => handleInputChange(element.id, e.target.value)}
-              required={element.required}
             />
           </div>
         );
@@ -127,10 +123,7 @@ export default function FormPreview({ formData }: FormPreviewProps) {
       case "number_input":
         return (
           <div className="space-y-2" key={element.id}>
-            <Label htmlFor={element.id.toString()}>
-              {element.label || element.template.label}
-              {element.required && <span className="text-red-500 ml-1">*</span>}
-            </Label>
+            <Label htmlFor={element.id.toString()}>{element.label || element.template.label}</Label>
             <Input
               id={element.id.toString()}
               type="number"
@@ -138,25 +131,6 @@ export default function FormPreview({ formData }: FormPreviewProps) {
               min={element.properties?.min}
               max={element.properties?.max}
               onChange={(e) => handleInputChange(element.id, e.target.value)}
-              required={element.required}
-            />
-          </div>
-        );
-
-      case "email":
-        return (
-          <div className="space-y-2" key={element.id}>
-            <Label htmlFor={element.id.toString()}>
-              {element.label || element.template.label}
-              {element.required && <span className="text-red-500 ml-1">*</span>}
-            </Label>
-            <Input
-              id={element.id.toString()}
-              type="email"
-              value={value}
-              placeholder={element.properties?.placeholder || ""}
-              onChange={(e) => handleInputChange(element.id, e.target.value)}
-              required={element.required}
             />
           </div>
         );
@@ -164,16 +138,12 @@ export default function FormPreview({ formData }: FormPreviewProps) {
       case "textarea":
         return (
           <div className="space-y-2" key={element.id}>
-            <Label htmlFor={element.id.toString()}>
-              {element.label || element.template.label}
-              {element.required && <span className="text-red-500 ml-1">*</span>}
-            </Label>
+            <Label htmlFor={element.id.toString()}>{element.label || element.template.label}</Label>
             <Textarea
               id={element.id.toString()}
               value={value}
               placeholder={element.properties?.placeholder || ""}
               onChange={(e) => handleInputChange(element.id, e.target.value)}
-              required={element.required}
               rows={4}
             />
           </div>
@@ -186,7 +156,6 @@ export default function FormPreview({ formData }: FormPreviewProps) {
               id={element.id.toString()}
               checked={value || false}
               onCheckedChange={(checked) => handleInputChange(element.id, checked)}
-              required={element.required}
             />
             <div className="grid gap-1.5 leading-none">
               <Label
@@ -194,8 +163,37 @@ export default function FormPreview({ formData }: FormPreviewProps) {
                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
               >
                 {element.label || element.template.label}
-                {element.required && <span className="text-red-500 ml-1">*</span>}
               </Label>
+            </div>
+          </div>
+        );
+
+      case "checkbox_group":
+        return (
+          <div className="space-y-2" key={element.id}>
+            <Label>{element.label || element.template.label}</Label>
+            <div className="space-y-2">
+              {element.properties?.options?.map((option: string, index: number) => (
+                <div key={index} className="flex items-start space-x-2 space-y-0">
+                  <Checkbox
+                    id={`${element.id}-${index}`}
+                    checked={(value || [])[index] || false}
+                    onCheckedChange={(checked) => {
+                      const newValues = [...(value || [])];
+                      newValues[index] = checked;
+                      handleInputChange(element.id, newValues);
+                    }}
+                  />
+                  <div className="grid gap-1.5 leading-none">
+                    <Label
+                      htmlFor={`${element.id}-${index}`}
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      {option}
+                    </Label>
+                  </div>
+                </div>
+              )) || <div className="text-sm text-muted-foreground">No options defined</div>}
             </div>
           </div>
         );
@@ -203,14 +201,28 @@ export default function FormPreview({ formData }: FormPreviewProps) {
       case "radio":
         return (
           <div className="space-y-2" key={element.id}>
-            <Label>
-              {element.label || element.template.label}
-              {element.required && <span className="text-red-500 ml-1">*</span>}
-            </Label>
+            <Label>{element.label || element.template.label}</Label>
             <RadioGroup
               value={value}
               onValueChange={(value) => handleInputChange(element.id, value)}
-              required={element.required}
+            >
+              {element.properties?.options?.map((option: string, index: number) => (
+                <div key={index} className="flex items-center space-x-2">
+                  <RadioGroupItem value={option} id={`${element.id}-${index}`} />
+                  <Label htmlFor={`${element.id}-${index}`}>{option}</Label>
+                </div>
+              )) || <div className="text-sm text-muted-foreground">No options defined</div>}
+            </RadioGroup>
+          </div>
+        );
+
+      case "radio_group":
+        return (
+          <div className="space-y-2" key={element.id}>
+            <Label>{element.label || element.template.label}</Label>
+            <RadioGroup
+              value={value}
+              onValueChange={(value) => handleInputChange(element.id, value)}
             >
               {element.properties?.options?.map((option: string, index: number) => (
                 <div key={index} className="flex items-center space-x-2">
@@ -225,10 +237,7 @@ export default function FormPreview({ formData }: FormPreviewProps) {
       case "select":
         return (
           <div className="space-y-2" key={element.id}>
-            <Label htmlFor={element.id.toString()}>
-              {element.label || element.template.label}
-              {element.required && <span className="text-red-500 ml-1">*</span>}
-            </Label>
+            <Label htmlFor={element.id.toString()}>{element.label || element.template.label}</Label>
             <Select value={value} onValueChange={(value) => handleInputChange(element.id, value)}>
               <SelectTrigger id={element.id.toString()}>
                 <SelectValue placeholder="Select an option" />
@@ -251,24 +260,72 @@ export default function FormPreview({ formData }: FormPreviewProps) {
       case "date":
         return (
           <div className="space-y-2" key={element.id}>
-            <Label htmlFor={element.id.toString()}>
-              {element.label || element.template.label}
-              {element.required && <span className="text-red-500 ml-1">*</span>}
-            </Label>
+            <Label htmlFor={element.id.toString()}>{element.label || element.template.label}</Label>
             <Input
               id={element.id.toString()}
               type="date"
               value={value}
               onChange={(e) => handleInputChange(element.id, e.target.value)}
-              required={element.required}
             />
           </div>
         );
 
-      case "text":
+      case "range":
+      case "slider":
         return (
           <div className="space-y-2" key={element.id}>
-            <p className="text-sm font-medium">{element.label || element.template.label}</p>
+            <Label htmlFor={element.id.toString()}>{element.label || element.template.label}</Label>
+            <div className="flex items-center gap-2">
+              <span className="text-sm">{element.properties?.min || 0}</span>
+              <Input
+                id={element.id.toString()}
+                type="range"
+                value={value || element.properties?.default || 0}
+                min={element.properties?.min || 0}
+                max={element.properties?.max || 100}
+                step={element.properties?.step || 1}
+                onChange={(e) => handleInputChange(element.id, e.target.value)}
+                className="w-full"
+              />
+              <span className="text-sm">{element.properties?.max || 100}</span>
+            </div>
+            {value && <div className="text-sm text-center">Value: {value}</div>}
+          </div>
+        );
+
+      case "rating":
+        return (
+          <div className="space-y-2" key={element.id}>
+            <Label>{element.label || element.template.label}</Label>
+            <div className="flex gap-1">
+              {Array.from({ length: element.properties?.max || 5 }).map((_, index) => (
+                <Button
+                  key={index}
+                  type="button"
+                  variant={parseInt(value) > index ? "default" : "outline"}
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => handleInputChange(element.id, (index + 1).toString())}
+                >
+                  {index + 1}
+                </Button>
+              ))}
+            </div>
+          </div>
+        );
+
+      case "switch":
+      case "toggle":
+        return (
+          <div className="flex items-center justify-between space-y-0" key={element.id}>
+            <Label htmlFor={element.id.toString()}>{element.label || element.template.label}</Label>
+            <div className="ml-auto">
+              <Checkbox
+                id={element.id.toString()}
+                checked={value || false}
+                onCheckedChange={(checked) => handleInputChange(element.id, checked)}
+              />
+            </div>
           </div>
         );
 

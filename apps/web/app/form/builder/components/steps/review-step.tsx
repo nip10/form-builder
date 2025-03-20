@@ -2,7 +2,13 @@
 
 import { useFormContext } from "react-hook-form";
 import type { FormBuilderData } from "../form-builder";
-import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@repo/ui/components/ui/card";
 import {
   Accordion,
   AccordionContent,
@@ -10,6 +16,7 @@ import {
   AccordionTrigger,
 } from "@repo/ui/components/ui/accordion";
 import { Badge } from "@repo/ui/components/ui/badge";
+import { Separator } from "@repo/ui/components/ui/separator";
 
 export default function ReviewStep() {
   const { watch } = useFormContext<FormBuilderData>();
@@ -85,21 +92,19 @@ export default function ReviewStep() {
 
       <Card>
         <CardHeader>
-          <CardTitle>{form.title || "Untitled Form"}</CardTitle>
-          <div className="flex items-center gap-2 mt-1">
-            <Badge variant={form.status === "published" ? "default" : "outline"}>
-              {form.status === "published" ? "Published" : "Draft"}
-            </Badge>
+          <div className="flex flex-row justify-between">
+            <CardTitle>{form.title || "Untitled Form"}</CardTitle>
+            <div className="flex items-center gap-2 mt-1">
+              <Badge variant={form.status === "published" ? "default" : "outline"}>
+                {form.status === "published" ? "Published" : "Draft"}
+              </Badge>
+            </div>
           </div>
+          {form.description && <CardDescription>{form.description}</CardDescription>}
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground mb-4">
-            {form.description || "No description provided."}
-          </p>
-
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Form Structure</h3>
-
             <Accordion type="multiple" className="w-full">
               {groups.map((group) => (
                 <AccordionItem key={group.id} value={group.id}>
@@ -108,9 +113,9 @@ export default function ReviewStep() {
                   </AccordionTrigger>
                   <AccordionContent>
                     <div className="pl-4 border-l-2 border-muted">
-                      <p className="text-sm text-muted-foreground mb-2">
-                        {group.description || "No description provided."}
-                      </p>
+                      {group.description && (
+                        <p className="text-sm text-muted-foreground mb-2">{group.description}</p>
+                      )}
 
                       {(pagesByGroup[group.id] || []).length > 0 ? (
                         <Accordion type="multiple" className="w-full">
@@ -121,9 +126,11 @@ export default function ReviewStep() {
                               </AccordionTrigger>
                               <AccordionContent>
                                 <div className="pl-4 border-l-2 border-muted">
-                                  <p className="text-sm text-muted-foreground mb-2">
-                                    {page.description || "No description provided."}
-                                  </p>
+                                  {page.description && (
+                                    <p className="text-sm text-muted-foreground mb-2">
+                                      {page.description}
+                                    </p>
+                                  )}
 
                                   {(elementsByPage[page.id] || []).length > 0 ? (
                                     <ul className="space-y-2">
@@ -169,9 +176,11 @@ export default function ReviewStep() {
             )}
           </div>
 
+          <Separator />
+
           <div className="mt-6">
             <h3 className="text-lg font-medium mb-2">Form Summary</h3>
-            <ul className="space-y-1 text-sm">
+            <ul className="text-sm flex flex-row gap-2 justify-between">
               <li>
                 <span className="font-medium">Groups:</span> {groups.length}
               </li>

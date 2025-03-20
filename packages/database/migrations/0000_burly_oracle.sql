@@ -58,6 +58,29 @@ CREATE TABLE "form_builder_form_publish_audit" (
 	"notes" text
 );
 --> statement-breakpoint
+CREATE TABLE "form_builder_form_response" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"submission_id" integer NOT NULL,
+	"element_instance_id" integer NOT NULL,
+	"value" jsonb NOT NULL,
+	"is_valid" boolean DEFAULT true NOT NULL,
+	"validation_errors" jsonb DEFAULT '[]'::jsonb,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "form_builder_form_submission" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"form_id" integer NOT NULL,
+	"form_version" integer NOT NULL,
+	"submitted_at" timestamp DEFAULT now() NOT NULL,
+	"submitted_by" text,
+	"status" text DEFAULT 'completed' NOT NULL,
+	"metadata" jsonb DEFAULT '{}'::jsonb,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "form_builder_form" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"title" text NOT NULL,
@@ -105,6 +128,7 @@ CREATE TABLE "form_builder_group_instance" (
 CREATE TABLE "form_builder_group_template" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"title" text NOT NULL,
+	"subtitle" text,
 	"description" text,
 	"validations" jsonb DEFAULT '[]'::jsonb,
 	"properties" jsonb DEFAULT '{}'::jsonb,
@@ -127,6 +151,7 @@ CREATE TABLE "form_builder_page_instance" (
 CREATE TABLE "form_builder_page_template" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"title" text NOT NULL,
+	"subtitle" text,
 	"description" text,
 	"validations" jsonb DEFAULT '[]'::jsonb,
 	"properties" jsonb DEFAULT '{}'::jsonb,
@@ -150,6 +175,9 @@ ALTER TABLE "form_builder_condition" ADD CONSTRAINT "form_builder_condition_form
 ALTER TABLE "form_builder_element_instance" ADD CONSTRAINT "form_builder_element_instance_template_id_form_builder_element_template_id_fk" FOREIGN KEY ("template_id") REFERENCES "public"."form_builder_element_template"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "form_builder_element_instance" ADD CONSTRAINT "form_builder_element_instance_page_instance_id_form_builder_page_instance_id_fk" FOREIGN KEY ("page_instance_id") REFERENCES "public"."form_builder_page_instance"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "form_builder_form_publish_audit" ADD CONSTRAINT "form_builder_form_publish_audit_form_id_form_builder_form_id_fk" FOREIGN KEY ("form_id") REFERENCES "public"."form_builder_form"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "form_builder_form_response" ADD CONSTRAINT "form_builder_form_response_submission_id_form_builder_form_submission_id_fk" FOREIGN KEY ("submission_id") REFERENCES "public"."form_builder_form_submission"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "form_builder_form_response" ADD CONSTRAINT "form_builder_form_response_element_instance_id_form_builder_element_instance_id_fk" FOREIGN KEY ("element_instance_id") REFERENCES "public"."form_builder_element_instance"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "form_builder_form_submission" ADD CONSTRAINT "form_builder_form_submission_form_id_form_builder_form_id_fk" FOREIGN KEY ("form_id") REFERENCES "public"."form_builder_form"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "form_builder_form" ADD CONSTRAINT "form_builder_form_forked_from_id_form_builder_form_id_fk" FOREIGN KEY ("forked_from_id") REFERENCES "public"."form_builder_form"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "form_builder_form_validation" ADD CONSTRAINT "form_builder_form_validation_form_id_form_builder_form_id_fk" FOREIGN KEY ("form_id") REFERENCES "public"."form_builder_form"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "form_builder_form_version" ADD CONSTRAINT "form_builder_form_version_form_id_form_builder_form_id_fk" FOREIGN KEY ("form_id") REFERENCES "public"."form_builder_form"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint

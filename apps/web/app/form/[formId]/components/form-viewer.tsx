@@ -56,24 +56,14 @@ export default function FormViewer({ formData }: FormViewerProps) {
         <ResizablePanel defaultSize={40} minSize={30}>
           <div className="h-full flex flex-col border-r">
             <div className="p-3 border-b">
-              <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList>
-                  <TabsTrigger value="structure">Flow Diagram</TabsTrigger>
-                  <TabsTrigger value="preview">Preview</TabsTrigger>
-                </TabsList>
-              </Tabs>
+              <h2 className="font-semibold">Flow Diagram</h2>
             </div>
             <div className="flex-1 overflow-auto">
-              <TabsContent value="structure" className="h-full m-0 p-0">
-                <FormFlowView
-                  formData={formData}
-                  selectedElement={selectedElement}
-                  onElementSelect={handleElementSelect}
-                />
-              </TabsContent>
-              <TabsContent value="preview" className="h-full m-0 p-0 md:hidden lg:hidden">
-                <FormPreview formData={formData} selectedElement={selectedElement} />
-              </TabsContent>
+              <FormFlowView
+                formData={formData}
+                selectedElement={selectedElement}
+                onElementSelect={handleElementSelect}
+              />
             </div>
           </div>
         </ResizablePanel>
