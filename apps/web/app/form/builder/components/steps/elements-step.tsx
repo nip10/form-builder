@@ -30,6 +30,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@repo/ui/components/ui/accordion";
+import type { Dictionary } from "@repo/internationalization";
+import { TranslationInput } from "../translation-input";
 
 // Element types based on the schema
 const elementTypes = [
@@ -45,7 +47,11 @@ const elementTypes = [
   { value: "date", label: "Date" },
 ];
 
-export default function ElementsStep() {
+interface ElementsStepProps {
+  dictionary: Dictionary;
+}
+
+export default function ElementsStep({ dictionary }: ElementsStepProps) {
   const form = useFormContext<FormBuilderData>();
   const { control, watch } = form;
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -173,7 +179,11 @@ export default function ElementsStep() {
                         <FormItem>
                           <FormLabel>Element Label</FormLabel>
                           <FormControl>
-                            <Input {...field} />
+                            <TranslationInput
+                              placeholder="Enter element label"
+                              dictionary={dictionary}
+                              {...field}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -260,8 +270,13 @@ export default function ElementsStep() {
                                 <FormItem>
                                   <FormLabel>Placeholder</FormLabel>
                                   <FormControl>
-                                    <Input {...field} />
+                                    <TranslationInput
+                                      placeholder="Enter placeholder text"
+                                      dictionary={dictionary}
+                                      {...field}
+                                    />
                                   </FormControl>
+                                  <FormMessage />
                                 </FormItem>
                               )}
                             />

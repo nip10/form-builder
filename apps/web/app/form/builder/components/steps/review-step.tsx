@@ -17,8 +17,13 @@ import {
 } from "@repo/ui/components/ui/accordion";
 import { Badge } from "@repo/ui/components/ui/badge";
 import { Separator } from "@repo/ui/components/ui/separator";
+import type { Dictionary } from "@repo/internationalization";
 
-export default function ReviewStep() {
+interface ReviewStepProps {
+  dictionary: Dictionary;
+}
+
+export default function ReviewStep({ dictionary }: ReviewStepProps) {
   const { watch } = useFormContext<FormBuilderData>();
 
   const formData = watch();

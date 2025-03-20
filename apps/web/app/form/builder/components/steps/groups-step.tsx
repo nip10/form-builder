@@ -16,8 +16,15 @@ import {
 } from "@repo/ui/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@repo/ui/components/ui/card";
 import { Plus, Trash2, MoveUp, MoveDown } from "lucide-react";
+import type { Dictionary } from "@repo/internationalization";
+import { TranslationInput } from "../translation-input";
+import { TranslationTextarea } from "../translation-textarea";
 
-export default function GroupsStep() {
+interface GroupsStepProps {
+  dictionary: Dictionary;
+}
+
+export default function GroupsStep({ dictionary }: GroupsStepProps) {
   const form = useFormContext<FormBuilderData>();
   const { control, watch } = form;
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -114,7 +121,11 @@ export default function GroupsStep() {
                         <FormItem>
                           <FormLabel>Group Title</FormLabel>
                           <FormControl>
-                            <Input {...field} />
+                            <TranslationInput
+                              placeholder="Enter group title"
+                              dictionary={dictionary}
+                              {...field}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -125,10 +136,16 @@ export default function GroupsStep() {
                       control={control}
                       name={`groups.${index}.description`}
                       render={({ field }) => (
-                        <FormItem className="mt-4">
+                        <FormItem className="mt-2">
                           <FormLabel>Description</FormLabel>
                           <FormControl>
-                            <Textarea className="resize-none" rows={3} {...field} />
+                            <TranslationTextarea
+                              placeholder="Enter group description"
+                              className="resize-none"
+                              rows={3}
+                              dictionary={dictionary}
+                              {...field}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>

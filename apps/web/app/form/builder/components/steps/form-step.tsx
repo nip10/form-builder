@@ -19,8 +19,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@repo/ui/components/ui/select";
+import { TranslationInput } from "../translation-input";
+import { TranslationTextarea } from "../translation-textarea";
+import type { Dictionary } from "@repo/internationalization";
 
-export default function FormStep() {
+interface FormStepProps {
+  dictionary: Dictionary;
+}
+
+export default function FormStep({ dictionary }: FormStepProps) {
   const form = useFormContext<FormBuilderData>();
   const { control } = form;
 
@@ -41,7 +48,11 @@ export default function FormStep() {
             <FormItem>
               <FormLabel>Form Title</FormLabel>
               <FormControl>
-                <Input placeholder="Enter form title" {...field} />
+                <TranslationInput
+                  placeholder="Enter form title"
+                  dictionary={dictionary}
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -55,10 +66,11 @@ export default function FormStep() {
             <FormItem className="mt-4">
               <FormLabel>Description</FormLabel>
               <FormControl>
-                <Textarea
+                <TranslationTextarea
                   placeholder="Enter form description"
                   className="resize-none"
                   rows={4}
+                  dictionary={dictionary}
                   {...field}
                 />
               </FormControl>

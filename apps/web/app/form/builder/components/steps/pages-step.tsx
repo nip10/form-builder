@@ -23,8 +23,15 @@ import {
 } from "@repo/ui/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@repo/ui/components/ui/card";
 import { Plus, Trash2, MoveUp, MoveDown } from "lucide-react";
+import type { Dictionary } from "@repo/internationalization";
+import { TranslationInput } from "../translation-input";
+import { TranslationTextarea } from "../translation-textarea";
 
-export default function PagesStep() {
+interface PagesStepProps {
+  dictionary: Dictionary;
+}
+
+export default function PagesStep({ dictionary }: PagesStepProps) {
   const form = useFormContext<FormBuilderData>();
   const { control, watch } = form;
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -146,7 +153,11 @@ export default function PagesStep() {
                         <FormItem>
                           <FormLabel>Page Title</FormLabel>
                           <FormControl>
-                            <Input {...field} />
+                            <TranslationInput
+                              placeholder="Enter page title"
+                              dictionary={dictionary}
+                              {...field}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -157,10 +168,16 @@ export default function PagesStep() {
                       control={control}
                       name={`pages.${index}.description`}
                       render={({ field }) => (
-                        <FormItem className="mt-4">
+                        <FormItem className="mt-2">
                           <FormLabel>Description</FormLabel>
                           <FormControl>
-                            <Textarea className="resize-none" rows={3} {...field} />
+                            <TranslationTextarea
+                              placeholder="Enter page description"
+                              className="resize-none"
+                              rows={3}
+                              dictionary={dictionary}
+                              {...field}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>

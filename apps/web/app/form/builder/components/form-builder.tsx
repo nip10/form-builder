@@ -16,7 +16,7 @@ import PagesStep from "./steps/pages-step";
 import ElementsStep from "./steps/elements-step";
 import ReviewStep from "./steps/review-step";
 import StepIndicator from "./step-indicator";
-
+import type { Dictionary } from "@repo/internationalization";
 // Define the form data type based on our schema
 export type FormBuilderData = z.infer<typeof formSchema>;
 
@@ -30,7 +30,7 @@ const steps: { id: Step; label: string }[] = [
   { id: "review", label: "Review" },
 ];
 
-export default function FormBuilder() {
+export default function FormBuilder({ dictionary }: { dictionary: Dictionary }) {
   const [currentStep, setCurrentStep] = useState<Step>("form");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
@@ -174,19 +174,19 @@ export default function FormBuilder() {
             <div className="mt-8">
               <Tabs value={currentStep} onValueChange={(value) => setCurrentStep(value as Step)}>
                 <TabsContent value="form">
-                  <FormStep />
+                  <FormStep dictionary={dictionary} />
                 </TabsContent>
                 <TabsContent value="groups">
-                  <GroupsStep />
+                  <GroupsStep dictionary={dictionary} />
                 </TabsContent>
                 <TabsContent value="pages">
-                  <PagesStep />
+                  <PagesStep dictionary={dictionary} />
                 </TabsContent>
                 <TabsContent value="elements">
-                  <ElementsStep />
+                  <ElementsStep dictionary={dictionary} />
                 </TabsContent>
                 <TabsContent value="review">
-                  <ReviewStep />
+                  <ReviewStep dictionary={dictionary} />
                 </TabsContent>
               </Tabs>
             </div>
