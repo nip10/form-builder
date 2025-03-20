@@ -62,7 +62,6 @@ export function TranslationTextarea({
         <TranslationSelector
           dictionary={dictionary}
           onSelectTranslation={handleSelectTranslation}
-          inputValue={value as string}
         />
       </div>
     </div>

@@ -62,7 +62,6 @@ export function TranslationInput({
         <TranslationSelector
           dictionary={dictionary}
           onSelectTranslation={handleSelectTranslation}
-          inputValue={value as string}
         />
       </div>
     </div>

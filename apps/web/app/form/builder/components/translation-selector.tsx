@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import { Button } from "@repo/ui/components/ui/button";
 import {
   Command,
@@ -19,22 +19,25 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@repo/ui/components/ui/tooltip";
+import { useVirtualizer } from "@tanstack/react-virtual";
 
 interface TranslationSelectorProps {
   dictionary: Dictionary;
   onSelectTranslation: (key: string) => void;
   placeholder?: string;
-  inputValue?: string;
 }
 
 export function TranslationSelector({
   dictionary,
   onSelectTranslation,
   placeholder = "Search translations...",
-  inputValue = "",
 }: TranslationSelectorProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [focusedIndex, setFocusedIndex] = useState(-1);
+  const [isKeyboardNavActive, setIsKeyboardNavActive] = useState(false);
+
+  const parentRef = useRef<HTMLDivElement>(null);
 
   // Memoize translations array to prevent recalculation on each render
   const translations = useMemo(
@@ -58,10 +61,23 @@ export function TranslationSelector({
     );
   }, [translations, search]);
 
+  // Setup virtualizer
+  const virtualizer = useVirtualizer({
+    count: filteredTranslations.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 64, // Reduce height to 60px for 2 lines of text
+    overscan: 10, // Number of items to render outside of the visible area
+  });
+
+  const virtualItems = virtualizer.getVirtualItems();
+
   // Memoize handlers to prevent recreating functions on each render
   const handleOpenChange = useCallback((open: boolean) => {
     setOpen(open);
-    if (!open) setSearch("");
+    if (!open) {
+      setSearch("");
+      setFocusedIndex(-1);
+    }
   }, []);
 
   const handleSelect = useCallback(
@@ -75,10 +91,43 @@ export function TranslationSelector({
 
   const handleOpen = useCallback(() => setOpen(true), []);
 
-  // Memoize slice of translations to show
-  const translationsToShow = useMemo(
-    () => filteredTranslations.slice(0, 100),
-    [filteredTranslations],
+  // Handle keyboard navigation
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (filteredTranslations.length === 0) return;
+
+      switch (e.key) {
+        case "ArrowDown":
+          e.preventDefault();
+          setIsKeyboardNavActive(true);
+          setFocusedIndex((prev) => {
+            const newIndex = Math.min(prev === -1 ? 0 : prev + 1, filteredTranslations.length - 1);
+            virtualizer.scrollToIndex(newIndex, { align: "center" });
+            return newIndex;
+          });
+          break;
+        case "ArrowUp":
+          e.preventDefault();
+          setIsKeyboardNavActive(true);
+          setFocusedIndex((prev) => {
+            const newIndex = Math.max(prev === -1 ? filteredTranslations.length - 1 : prev - 1, 0);
+            virtualizer.scrollToIndex(newIndex, { align: "center" });
+            return newIndex;
+          });
+          break;
+        case "Enter":
+          e.preventDefault();
+          if (focusedIndex >= 0 && filteredTranslations[focusedIndex]) {
+            handleSelect(filteredTranslations[focusedIndex].key);
+          }
+          break;
+        case "Escape":
+          e.preventDefault();
+          setOpen(false);
+          break;
+      }
+    },
+    [filteredTranslations, focusedIndex, handleSelect, virtualizer],
   );
 
   return (
@@ -103,31 +152,57 @@ export function TranslationSelector({
       </TooltipProvider>
 
       <CommandDialog open={open} onOpenChange={handleOpenChange}>
-        <Command className="rounded-lg border shadow-md" shouldFilter={false}>
+        <Command
+          className="rounded-lg border shadow-md"
+          shouldFilter={false}
+          onKeyDown={handleKeyDown}
+        >
           <CommandInput placeholder={placeholder} value={search} onValueChange={setSearch} />
-          <CommandList className="h-[80vh] max-h-[600px] overflow-auto">
+          <CommandList
+            ref={parentRef}
+            className="h-[80vh] max-h-[600px] overflow-auto"
+            onMouseDown={() => setIsKeyboardNavActive(false)}
+            onMouseMove={() => setIsKeyboardNavActive(false)}
+          >
             <CommandEmpty>No translations found.</CommandEmpty>
             {filteredTranslations.length > 0 && (
               <CommandGroup heading="Translations">
-                {translationsToShow.map((item) => (
-                  <CommandItem
-                    key={item.key}
-                    value={`${item.key} ${item.value}`}
-                    onSelect={() => handleSelect(item.key)}
-                    className="cursor-pointer"
-                  >
-                    <div className="flex flex-col text-sm">
-                      <span className="font-medium">{item.value}</span>
-                      <span className="text-muted-foreground text-xs">{item.key}</span>
-                    </div>
-                  </CommandItem>
-                ))}
+                <div
+                  style={{
+                    height: `${virtualizer.getTotalSize()}px`,
+                    width: "100%",
+                    position: "relative",
+                  }}
+                >
+                  {virtualItems.map((virtualItem) => {
+                    const item = filteredTranslations[virtualItem.index];
+                    if (!item) return null;
+
+                    return (
+                      <CommandItem
+                        key={item.key}
+                        value={`${item.key} ${item.value}`}
+                        onSelect={() => handleSelect(item.key)}
+                        className="absolute left-0 top-0 w-full cursor-pointer py-0!"
+                        style={{
+                          height: `${virtualItem.size}px`,
+                          transform: `translateY(${virtualItem.start}px)`,
+                        }}
+                        onMouseEnter={() =>
+                          !isKeyboardNavActive && setFocusedIndex(virtualItem.index)
+                        }
+                        onMouseLeave={() => !isKeyboardNavActive && setFocusedIndex(-1)}
+                        data-highlighted={focusedIndex === virtualItem.index}
+                      >
+                        <div className="flex flex-col text-sm w-full">
+                          <span className="font-medium line-clamp-2">{item.value}</span>
+                          <span className="text-muted-foreground text-xs">{item.key}</span>
+                        </div>
+                      </CommandItem>
+                    );
+                  })}
+                </div>
               </CommandGroup>
-            )}
-            {filteredTranslations.length > 100 && filteredTranslations.length > 0 && (
-              <div className="py-2 px-2 text-xs text-muted-foreground text-center">
-                Showing 100 of {filteredTranslations.length} results. Please refine your search.
-              </div>
             )}
           </CommandList>
         </Command>
