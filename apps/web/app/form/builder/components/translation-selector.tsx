@@ -1,12 +1,11 @@
 "use client";
 
-import { useState, useMemo, useCallback, useRef } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { Button } from "@repo/ui/components/ui/button";
 import {
   Command,
   CommandDialog,
   CommandEmpty,
-  CommandGroup,
   CommandInput,
   CommandItem,
   CommandList,
@@ -61,7 +60,6 @@ export function TranslationSelector({
     );
   }, [translations, search]);
 
-  // Setup virtualizer
   const virtualizer = useVirtualizer({
     count: filteredTranslations.length,
     getScrollElement: () => parentRef.current,
@@ -70,6 +68,20 @@ export function TranslationSelector({
   });
 
   const virtualItems = virtualizer.getVirtualItems();
+
+  // https://github.com/TanStack/virtual/issues/699
+  useEffect(() => {
+    if (!open) return;
+
+    virtualizer.scrollToIndex(0);
+
+    // Force a recalculation after a small delay to ensure DOM is ready
+    const timer = setTimeout(() => {
+      virtualizer.measure();
+    }, 50);
+
+    return () => clearTimeout(timer);
+  }, [open, virtualizer]);
 
   // Memoize handlers to prevent recreating functions on each render
   const handleOpenChange = useCallback((open: boolean) => {
@@ -130,6 +142,9 @@ export function TranslationSelector({
     [filteredTranslations, focusedIndex, handleSelect, virtualizer],
   );
 
+  // Show CommandEmpty only when user has typed something but no matches found
+  const showNoResults = search !== "" && filteredTranslations.length === 0;
+
   return (
     <>
       <TooltipProvider>
@@ -164,9 +179,10 @@ export function TranslationSelector({
             onMouseDown={() => setIsKeyboardNavActive(false)}
             onMouseMove={() => setIsKeyboardNavActive(false)}
           >
-            <CommandEmpty>No translations found.</CommandEmpty>
-            {filteredTranslations.length > 0 && (
-              <CommandGroup heading="Translations">
+            {showNoResults ? (
+              <CommandEmpty>No translations found.</CommandEmpty>
+            ) : (
+              filteredTranslations.length > 0 && (
                 <div
                   style={{
                     height: `${virtualizer.getTotalSize()}px`,
@@ -202,7 +218,7 @@ export function TranslationSelector({
                     );
                   })}
                 </div>
-              </CommandGroup>
+              )
             )}
           </CommandList>
         </Command>
