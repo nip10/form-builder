@@ -99,16 +99,24 @@ export default function ElementsStep({ dictionary }: ElementsStepProps) {
     }
   };
 
-  // Get page title by ID
-  const getPageTitle = (pageId: string) => {
-    const page = pages.find((p) => p.id === pageId);
-    return page ? page.title : "Unknown Page";
-  };
-
   // Get element type label
   const getElementTypeLabel = (type: string) => {
     const elementType = elementTypes.find((t) => t.value === type);
     return elementType ? elementType.label : type;
+  };
+
+  const getElementLabel = (index: number) => {
+    return fields[index] && fields[index].label in dictionary
+      ? dictionary[fields[index].label as keyof typeof dictionary]
+      : `Element ${index + 1}`;
+  };
+
+  const getElementPageTitle = (index: number) => {
+    const page = pages.find((p) => p.id === fields[index]?.pageId);
+    if (!page) return "Unknown Page";
+    return page && page.title in dictionary
+      ? dictionary[page.title as keyof typeof dictionary]
+      : `Page ${pages.indexOf(page) + 1}`;
   };
 
   return (
@@ -141,9 +149,9 @@ export default function ElementsStep({ dictionary }: ElementsStepProps) {
             <Card key={field.id} className={editingIndex === index ? "border-primary" : ""}>
               <CardHeader className="flex flex-row items-center justify-between py-3">
                 <div>
-                  <CardTitle className="text-lg">{field.label || `Element ${index + 1}`}</CardTitle>
+                  <CardTitle className="text-lg">{getElementLabel(index)}</CardTitle>
                   <p className="text-sm text-muted-foreground">
-                    Type: {getElementTypeLabel(field.type)} | Page: {getPageTitle(field.pageId)}
+                    Type: {getElementTypeLabel(field.type)} | Page: {getElementPageTitle(index)}
                   </p>
                 </div>
                 <div className="flex gap-1">
@@ -230,7 +238,9 @@ export default function ElementsStep({ dictionary }: ElementsStepProps) {
                             <SelectContent>
                               {pages.map((page) => (
                                 <SelectItem key={page.id} value={page.id}>
-                                  {page.title || `Page ${pages.indexOf(page) + 1}`}
+                                  {page.title in dictionary
+                                    ? dictionary[page.title as keyof typeof dictionary]
+                                    : `Page ${pages.indexOf(page) + 1}`}
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -336,7 +346,7 @@ export default function ElementsStep({ dictionary }: ElementsStepProps) {
                 <CardContent>
                   <p className="text-sm">
                     {field.required && <span className="text-red-500 mr-1">*</span>}
-                    {field.label || `Untitled ${getElementTypeLabel(field.type)}`}
+                    {getElementLabel(index) || `Untitled ${getElementTypeLabel(field.type)}`}
                   </p>
                 </CardContent>
               )}

@@ -69,6 +69,13 @@ export function TranslationSelector({
 
   const virtualItems = virtualizer.getVirtualItems();
 
+  // Reset scroll position when search input changes
+  useEffect(() => {
+    if (parentRef.current && search !== undefined) {
+      virtualizer.scrollToIndex(0);
+    }
+  }, [search, virtualizer]);
+
   // https://github.com/TanStack/virtual/issues/699
   useEffect(() => {
     if (!open) return;

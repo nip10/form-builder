@@ -80,7 +80,16 @@ export default function PagesStep({ dictionary }: PagesStepProps) {
   // Get group title by ID
   const getGroupTitle = (groupId: string) => {
     const group = groups.find((g) => g.id === groupId);
-    return group ? group.title : "Unknown Group";
+    if (!group) return "Unknown Group";
+    return group && group.title in dictionary
+      ? dictionary[group.title as keyof typeof dictionary]
+      : `Group ${groups.indexOf(group) + 1}`;
+  };
+
+  const getPageTitle = (index: number) => {
+    return fields[index] && fields[index].title in dictionary
+      ? dictionary[fields[index].title as keyof typeof dictionary]
+      : `Page ${index + 1}`;
   };
 
   return (
@@ -115,7 +124,7 @@ export default function PagesStep({ dictionary }: PagesStepProps) {
             <Card key={field.id} className={editingIndex === index ? "border-primary" : ""}>
               <CardHeader className="flex flex-row items-center justify-between py-3">
                 <div>
-                  <CardTitle className="text-lg">{field.title || `Page ${index + 1}`}</CardTitle>
+                  <CardTitle className="text-lg">{getPageTitle(index)}</CardTitle>
                   <p className="text-sm text-muted-foreground">
                     Group: {getGroupTitle(field.groupId)}
                   </p>

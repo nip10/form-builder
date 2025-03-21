@@ -20,7 +20,7 @@ export function TranslationInput({
   className,
   value,
   onChange,
-  displayValue = false,
+  displayValue = true,
   ...props
 }: TranslationInputProps) {
   // Handle selecting a translation key from the selector
@@ -51,19 +51,22 @@ export function TranslationInput({
       : value;
 
   return (
-    <div className={cn("relative flex w-full items-center", containerClassName)}>
-      <Input
-        className={cn("pr-10", className)}
-        value={displayedValue}
-        onChange={onChange}
-        {...props}
-      />
-      <div className="absolute right-2 flex items-center">
-        <TranslationSelector
-          dictionary={dictionary}
-          onSelectTranslation={handleSelectTranslation}
+    <div className="flex flex-col gap-2">
+      <div className={cn("relative flex w-full items-center", containerClassName)}>
+        <Input
+          className={cn("pr-10", className)}
+          value={displayedValue}
+          onChange={onChange}
+          {...props}
         />
+        <div className="absolute right-2 flex items-center">
+          <TranslationSelector
+            dictionary={dictionary}
+            onSelectTranslation={handleSelectTranslation}
+          />
+        </div>
       </div>
+      <span className="text-xs text-muted-foreground">{value}</span>
     </div>
   );
 }

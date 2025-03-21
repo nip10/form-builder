@@ -29,18 +29,6 @@ export default function ReviewStep({ dictionary }: ReviewStepProps) {
   const formData = watch();
   const { form, groups, pages, elements } = formData;
 
-  // Get page title by ID
-  const getPageTitle = (pageId: string) => {
-    const page = pages.find((p) => p.id === pageId);
-    return page ? page.title || `Untitled Page` : "Unknown Page";
-  };
-
-  // Get group title by ID
-  const getGroupTitle = (groupId: string) => {
-    const group = groups.find((g) => g.id === groupId);
-    return group ? group.title || `Untitled Group` : "Unknown Group";
-  };
-
   // Get element type label
   const getElementTypeLabel = (type: string) => {
     const elementTypes: Record<string, string> = {
@@ -86,6 +74,36 @@ export default function ReviewStep({ dictionary }: ReviewStepProps) {
     {} as Record<string, typeof pages>,
   );
 
+  const getFormTitle = () => {
+    return form.title in dictionary
+      ? dictionary[form.title as keyof typeof dictionary]
+      : "Untitled Form";
+  };
+
+  const getPageTitle = (pageId: string) => {
+    const page = pages.find((p) => p.id === pageId);
+    if (!page) return "Unknown Page";
+    return page.title in dictionary
+      ? dictionary[page.title as keyof typeof dictionary]
+      : `Page ${pages.indexOf(page) + 1}`;
+  };
+
+  const getGroupTitle = (groupId: string) => {
+    const group = groups.find((g) => g.id === groupId);
+    if (!group) return "Unknown Group";
+    return group.title in dictionary
+      ? dictionary[group.title as keyof typeof dictionary]
+      : `Group ${groups.indexOf(group) + 1}`;
+  };
+
+  const getElementLabel = (elementId: string) => {
+    const element = elements.find((e) => e.id === elementId);
+    if (!element) return "Unknown Element";
+    return element.label in dictionary
+      ? dictionary[element.label as keyof typeof dictionary]
+      : `Element ${elements.indexOf(element) + 1}`;
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -98,7 +116,7 @@ export default function ReviewStep({ dictionary }: ReviewStepProps) {
       <Card>
         <CardHeader>
           <div className="flex flex-row justify-between">
-            <CardTitle>{form.title || "Untitled Form"}</CardTitle>
+            <CardTitle>{getFormTitle()}</CardTitle>
             <div className="flex items-center gap-2 mt-1">
               <Badge variant={form.status === "published" ? "default" : "outline"}>
                 {form.status === "published" ? "Published" : "Draft"}
@@ -114,7 +132,7 @@ export default function ReviewStep({ dictionary }: ReviewStepProps) {
               {groups.map((group) => (
                 <AccordionItem key={group.id} value={group.id}>
                   <AccordionTrigger className="font-medium">
-                    {group.title || "Untitled Group"}
+                    {getGroupTitle(group.id)}
                   </AccordionTrigger>
                   <AccordionContent>
                     <div className="pl-4 border-l-2 border-muted">
@@ -127,7 +145,7 @@ export default function ReviewStep({ dictionary }: ReviewStepProps) {
                           {(pagesByGroup[group.id] || []).map((page) => (
                             <AccordionItem key={page.id} value={page.id}>
                               <AccordionTrigger className="text-sm font-medium">
-                                {page.title || "Untitled Page"}
+                                {getPageTitle(page.id)}
                               </AccordionTrigger>
                               <AccordionContent>
                                 <div className="pl-4 border-l-2 border-muted">
@@ -143,7 +161,7 @@ export default function ReviewStep({ dictionary }: ReviewStepProps) {
                                         <li key={element.id} className="text-sm">
                                           <div className="flex items-center gap-2">
                                             <span className="font-medium">
-                                              {element.label || "Untitled Element"}
+                                              {getElementLabel(element.id)}
                                             </span>
                                             <Badge variant="outline" className="text-xs">
                                               {getElementTypeLabel(element.type)}

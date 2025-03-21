@@ -62,6 +62,12 @@ export default function GroupsStep({ dictionary }: GroupsStepProps) {
     }
   };
 
+  const getGroupTitle = (index: number) => {
+    return fields[index] && fields[index].title in dictionary
+      ? dictionary[fields[index].title as keyof typeof dictionary]
+      : `Group ${index + 1}`;
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -87,7 +93,7 @@ export default function GroupsStep({ dictionary }: GroupsStepProps) {
           {fields.map((field, index) => (
             <Card key={field.id} className={editingIndex === index ? "border-primary" : ""}>
               <CardHeader className="flex flex-row items-center justify-between py-3">
-                <CardTitle className="text-lg">{field.title || `Group ${index + 1}`}</CardTitle>
+                <CardTitle className="text-lg">{getGroupTitle(index)}</CardTitle>
                 <div className="flex gap-1">
                   <Button
                     variant="ghost"
