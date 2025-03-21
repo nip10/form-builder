@@ -11,9 +11,11 @@ import type { FormWithRelations } from "@/lib/repositories/form-repository";
 import FormTreeView from "./form-tree-view";
 import FormFlowView from "./form-flow-view";
 import FormPreview from "./form-preview";
+import type { Dictionary } from "@repo/internationalization";
 
 interface FormViewerProps {
   formData: FormWithRelations;
+  dictionary: Dictionary;
 }
 
 export type SelectedElementType = "form" | "group" | "page" | "element";
@@ -23,7 +25,7 @@ export interface SelectedElement {
   type: SelectedElementType;
 }
 
-export default function FormViewer({ formData }: FormViewerProps) {
+export default function FormViewer({ formData, dictionary }: FormViewerProps) {
   const [selectedElement, setSelectedElement] = useState<SelectedElement | null>(null);
   const [activeTab, setActiveTab] = useState<string>("structure");
 
@@ -45,6 +47,7 @@ export default function FormViewer({ formData }: FormViewerProps) {
                 formData={formData}
                 selectedElement={selectedElement}
                 onElementSelect={handleElementSelect}
+                dictionary={dictionary}
               />
             </div>
           </div>
@@ -63,6 +66,7 @@ export default function FormViewer({ formData }: FormViewerProps) {
                 formData={formData}
                 selectedElement={selectedElement}
                 onElementSelect={handleElementSelect}
+                dictionary={dictionary}
               />
             </div>
           </div>
@@ -77,7 +81,11 @@ export default function FormViewer({ formData }: FormViewerProps) {
               <h2 className="font-semibold">Form Preview</h2>
             </div>
             <div className="flex-1 overflow-auto">
-              <FormPreview formData={formData} selectedElement={selectedElement} />
+              <FormPreview
+                formData={formData}
+                selectedElement={selectedElement}
+                dictionary={dictionary}
+              />
             </div>
           </div>
         </ResizablePanel>

@@ -27,11 +27,13 @@ import ElementNode from "./form-nodes/element-node";
 import { FormWithRelations } from "@/lib/repositories/form-repository";
 import { SelectedElement, SelectedElementType } from "./form-viewer";
 import { typeColors } from "./form-tree-view";
+import type { Dictionary } from "@repo/internationalization";
 
 interface FormFlowViewProps {
   formData: FormWithRelations;
   selectedElement: SelectedElement | null;
   onElementSelect: (type: SelectedElementType, id: number) => void;
+  dictionary: Dictionary;
 }
 
 // Define custom node types
@@ -49,6 +51,7 @@ function Flow({
   onElementSelect,
   initialNodes,
   initialEdges,
+  dictionary,
 }: FormFlowViewProps & { initialNodes: Node[]; initialEdges: Edge[] }) {
   const { fitView } = useReactFlow();
 
@@ -141,6 +144,15 @@ function Flow({
 
 // Outer component that provides the ReactFlowProvider
 export default function FormFlowView(props: FormFlowViewProps) {
+  // Helper function to translate content if it's a translation key
+  const translate = (text: string | null | undefined): string => {
+    if (!text) return "";
+    // Check if this is a translation key (stored in the DB)
+    return text in props.dictionary
+      ? props.dictionary[text as keyof typeof props.dictionary]
+      : text;
+  };
+
   // Create nodes and edges from form data
   const { initialNodes, initialEdges } = useMemo(() => {
     const nodes: Node[] = [];
@@ -150,7 +162,11 @@ export default function FormFlowView(props: FormFlowViewProps) {
     nodes.push({
       id: "form",
       type: "formNode",
-      data: { label: props.formData.title || "Untitled Form", formData: props.formData },
+      data: {
+        label: translate(props.formData.title) || "Untitled Form",
+        formData: props.formData,
+        dictionary: props.dictionary,
+      },
       position: { x: 0, y: 0 },
     });
 
@@ -160,7 +176,11 @@ export default function FormFlowView(props: FormFlowViewProps) {
       nodes.push({
         id: groupId,
         type: "groupNode",
-        data: { label: group.title || `Group ${groupIndex + 1}`, groupData: group },
+        data: {
+          label: translate(group.title) || `Group ${groupIndex + 1}`,
+          groupData: group,
+          dictionary: props.dictionary,
+        },
         position: { x: 0, y: (groupIndex + 1) * 150 },
       });
 
@@ -179,7 +199,11 @@ export default function FormFlowView(props: FormFlowViewProps) {
         nodes.push({
           id: pageId,
           type: "pageNode",
-          data: { label: page.title || `Page ${pageIndex + 1}`, pageData: page },
+          data: {
+            label: translate(page.title) || `Page ${pageIndex + 1}`,
+            pageData: page,
+            dictionary: props.dictionary,
+          },
           position: { x: 250, y: groupIndex * 300 + pageIndex * 150 + 150 },
         });
 
@@ -202,9 +226,10 @@ export default function FormFlowView(props: FormFlowViewProps) {
             id: elementId,
             type: "elementNode",
             data: {
-              label: element.label || `Element ${elementIndex + 1}`,
+              label: translate(element.label) || `Element ${elementIndex + 1}`,
               elementData: element,
               elementType: element.template?.type || "unknown",
+              dictionary: props.dictionary,
             },
             position: { x: 500, y: groupIndex * 300 + pageIndex * 150 + elementIndex * 80 + 150 },
           });
@@ -221,7 +246,7 @@ export default function FormFlowView(props: FormFlowViewProps) {
     });
 
     return { initialNodes: nodes, initialEdges: edges };
-  }, [props.formData]);
+  }, [props.formData, props.dictionary]);
 
   return (
     <div className="h-full w-full">

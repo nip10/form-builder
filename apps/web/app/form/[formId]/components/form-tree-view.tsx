@@ -19,6 +19,7 @@ import { cn } from "@repo/ui/lib/utils";
 import { useState } from "react";
 import { FormWithRelations } from "@/lib/repositories/form-repository";
 import { SelectedElement, SelectedElementType } from "./form-viewer";
+import type { Dictionary } from "@repo/internationalization";
 
 // Define consistent colors for form elements
 export const typeColors = {
@@ -33,12 +34,14 @@ interface FormTreeViewProps {
   formData: FormWithRelations;
   selectedElement: SelectedElement | null;
   onElementSelect: (type: SelectedElementType, id: number) => void;
+  dictionary: Dictionary;
 }
 
 export default function FormTreeView({
   formData,
   selectedElement,
   onElementSelect,
+  dictionary,
 }: FormTreeViewProps) {
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(
     formData.groups.reduce((acc, group) => ({ ...acc, [group.id]: true }), {}),
@@ -123,6 +126,13 @@ export default function FormTreeView({
       {} as Record<number, NonNullable<(typeof formData.groups)[0]["pages"][0]["elements"]>[0][]>,
     );
 
+  // Helper function to translate content if it's a translation key
+  const translate = (text: string | null | undefined): string => {
+    if (!text) return "";
+    // Check if this is a translation key (stored in the DB)
+    return text in dictionary ? dictionary[text as keyof typeof dictionary] : text;
+  };
+
   return (
     <div className="text-sm">
       {/* Form root */}
@@ -135,7 +145,7 @@ export default function FormTreeView({
         onClick={() => onElementSelect("form", formData.id)}
       >
         <FileText className="h-4 w-4 mr-2" />
-        <span className="font-medium">{formData.title || "Untitled Form"}</span>
+        <span className="font-medium">{translate(formData.title) || "Untitled Form"}</span>
       </div>
 
       {/* Groups */}
@@ -166,7 +176,7 @@ export default function FormTreeView({
                 )}
               </span>
               <Folder className="h-4 w-4 mr-2" />
-              <span>{group.title || `Group ${formData.groups.indexOf(group) + 1}`}</span>
+              <span>{translate(group.title) || `Group ${formData.groups.indexOf(group) + 1}`}</span>
             </div>
 
             {/* Pages in this group */}
@@ -199,7 +209,7 @@ export default function FormTreeView({
                       </span>
                       <Layout className="h-4 w-4 mr-2" />
                       <span>
-                        {page.title ||
+                        {translate(page.title) ||
                           `Page ${formData.groups.flatMap((group) => group.pages).indexOf(page) + 1}`}
                       </span>
                     </div>
@@ -221,7 +231,7 @@ export default function FormTreeView({
                           >
                             {getElementIcon(element?.template?.type || "unknown")}
                             <span className="ml-2">
-                              {element.label ||
+                              {translate(element.label) ||
                                 `Element ${
                                   formData.groups
                                     .flatMap((group) => group.pages)

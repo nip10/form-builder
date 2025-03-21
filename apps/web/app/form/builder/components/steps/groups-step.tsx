@@ -63,8 +63,9 @@ export default function GroupsStep({ dictionary }: GroupsStepProps) {
   };
 
   const getGroupTitle = (index: number) => {
-    return fields[index] && fields[index].title in dictionary
-      ? dictionary[fields[index].title as keyof typeof dictionary]
+    const title = watch(`groups.${index}.title`);
+    return title && title in dictionary
+      ? dictionary[title as keyof typeof dictionary]
       : `Group ${index + 1}`;
   };
 

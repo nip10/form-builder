@@ -81,15 +81,20 @@ export default function PagesStep({ dictionary }: PagesStepProps) {
   const getGroupTitle = (groupId: string) => {
     const group = groups.find((g) => g.id === groupId);
     if (!group) return "Unknown Group";
-    return group && group.title in dictionary
-      ? dictionary[group.title as keyof typeof dictionary]
-      : `Group ${groups.indexOf(group) + 1}`;
+    return translateContent(group.title) || `Group ${groups.indexOf(group) + 1}`;
   };
 
   const getPageTitle = (index: number) => {
-    return fields[index] && fields[index].title in dictionary
-      ? dictionary[fields[index].title as keyof typeof dictionary]
+    const title = watch(`pages.${index}.title`);
+    return title && title in dictionary
+      ? dictionary[title as keyof typeof dictionary]
       : `Page ${index + 1}`;
+  };
+
+  // Translate content if it's a translation key
+  const translateContent = (content: string | null | undefined): string => {
+    if (!content) return "";
+    return content in dictionary ? dictionary[content as keyof typeof dictionary] : content;
   };
 
   return (
@@ -180,10 +185,11 @@ export default function PagesStep({ dictionary }: PagesStepProps) {
                         <FormItem className="mt-2">
                           <FormLabel>Description</FormLabel>
                           <FormControl>
-                            <Textarea
+                            <TranslationTextarea
                               placeholder="Enter page description"
                               className="resize-none"
                               rows={3}
+                              dictionary={dictionary}
                               {...field}
                             />
                           </FormControl>
@@ -207,7 +213,8 @@ export default function PagesStep({ dictionary }: PagesStepProps) {
                             <SelectContent>
                               {groups.map((group) => (
                                 <SelectItem key={group.id} value={group.id}>
-                                  {group.title || `Group ${groups.indexOf(group) + 1}`}
+                                  {translateContent(group.title) ||
+                                    `Group ${groups.indexOf(group) + 1}`}
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -221,7 +228,8 @@ export default function PagesStep({ dictionary }: PagesStepProps) {
               ) : (
                 <CardContent>
                   <p className="text-sm text-muted-foreground">
-                    {watch(`pages.${index}.description`) || "No description provided."}
+                    {translateContent(watch(`pages.${index}.description`)) ||
+                      "No description provided."}
                   </p>
                 </CardContent>
               )}

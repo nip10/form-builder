@@ -24,15 +24,24 @@ import {
 } from "@repo/ui/components/ui/card";
 import { FormWithRelations } from "@/lib/repositories/form-repository";
 import { SelectedElement } from "./form-viewer";
+import type { Dictionary } from "@repo/internationalization";
 
 interface FormPreviewProps {
   formData: FormWithRelations;
   selectedElement: SelectedElement | null;
+  dictionary: Dictionary;
 }
 
-export default function FormPreview({ formData }: FormPreviewProps) {
+export default function FormPreview({ formData, selectedElement, dictionary }: FormPreviewProps) {
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [formValues, setFormValues] = useState<Record<string, any>>({});
+
+  // Helper function to translate content if it's a translation key
+  const translate = (text: string | null | undefined): string => {
+    if (!text) return "";
+    // Check if this is a translation key (stored in the DB)
+    return text in dictionary ? dictionary[text as keyof typeof dictionary] : text;
+  };
 
   // Group pages by group
   const pagesByGroup = formData.groups
@@ -110,11 +119,13 @@ export default function FormPreview({ formData }: FormPreviewProps) {
       case "text_input":
         return (
           <div className="space-y-2" key={element.id}>
-            <Label htmlFor={element.id.toString()}>{element.label || element.template.label}</Label>
+            <Label htmlFor={element.id.toString()}>
+              {translate(element.label || element.template.label)}
+            </Label>
             <Input
               id={element.id.toString()}
               value={value}
-              placeholder={element.properties?.placeholder || ""}
+              placeholder={translate(element.properties?.placeholder || "")}
               onChange={(e) => handleInputChange(element.id, e.target.value)}
             />
           </div>
@@ -123,7 +134,9 @@ export default function FormPreview({ formData }: FormPreviewProps) {
       case "number_input":
         return (
           <div className="space-y-2" key={element.id}>
-            <Label htmlFor={element.id.toString()}>{element.label || element.template.label}</Label>
+            <Label htmlFor={element.id.toString()}>
+              {translate(element.label || element.template.label)}
+            </Label>
             <Input
               id={element.id.toString()}
               type="number"
@@ -138,11 +151,13 @@ export default function FormPreview({ formData }: FormPreviewProps) {
       case "textarea":
         return (
           <div className="space-y-2" key={element.id}>
-            <Label htmlFor={element.id.toString()}>{element.label || element.template.label}</Label>
+            <Label htmlFor={element.id.toString()}>
+              {translate(element.label || element.template.label)}
+            </Label>
             <Textarea
               id={element.id.toString()}
               value={value}
-              placeholder={element.properties?.placeholder || ""}
+              placeholder={translate(element.properties?.placeholder || "")}
               onChange={(e) => handleInputChange(element.id, e.target.value)}
               rows={4}
             />
@@ -162,7 +177,7 @@ export default function FormPreview({ formData }: FormPreviewProps) {
                 htmlFor={element.id.toString()}
                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
               >
-                {element.label || element.template.label}
+                {translate(element.label || element.template.label)}
               </Label>
             </div>
           </div>
@@ -171,7 +186,7 @@ export default function FormPreview({ formData }: FormPreviewProps) {
       case "checkbox_group":
         return (
           <div className="space-y-2" key={element.id}>
-            <Label>{element.label || element.template.label}</Label>
+            <Label>{translate(element.label || element.template.label)}</Label>
             <div className="space-y-2">
               {element.properties?.options?.map((option: string, index: number) => (
                 <div key={index} className="flex items-start space-x-2 space-y-0">
@@ -201,7 +216,7 @@ export default function FormPreview({ formData }: FormPreviewProps) {
       case "radio":
         return (
           <div className="space-y-2" key={element.id}>
-            <Label>{element.label || element.template.label}</Label>
+            <Label>{translate(element.label || element.template.label)}</Label>
             <RadioGroup
               value={value}
               onValueChange={(value) => handleInputChange(element.id, value)}
@@ -219,7 +234,7 @@ export default function FormPreview({ formData }: FormPreviewProps) {
       case "radio_group":
         return (
           <div className="space-y-2" key={element.id}>
-            <Label>{element.label || element.template.label}</Label>
+            <Label>{translate(element.label || element.template.label)}</Label>
             <RadioGroup
               value={value}
               onValueChange={(value) => handleInputChange(element.id, value)}
@@ -237,7 +252,9 @@ export default function FormPreview({ formData }: FormPreviewProps) {
       case "select":
         return (
           <div className="space-y-2" key={element.id}>
-            <Label htmlFor={element.id.toString()}>{element.label || element.template.label}</Label>
+            <Label htmlFor={element.id.toString()}>
+              {translate(element.label || element.template.label)}
+            </Label>
             <Select value={value} onValueChange={(value) => handleInputChange(element.id, value)}>
               <SelectTrigger id={element.id.toString()}>
                 <SelectValue placeholder="Select an option" />
@@ -260,7 +277,9 @@ export default function FormPreview({ formData }: FormPreviewProps) {
       case "date":
         return (
           <div className="space-y-2" key={element.id}>
-            <Label htmlFor={element.id.toString()}>{element.label || element.template.label}</Label>
+            <Label htmlFor={element.id.toString()}>
+              {translate(element.label || element.template.label)}
+            </Label>
             <Input
               id={element.id.toString()}
               type="date"
@@ -274,7 +293,9 @@ export default function FormPreview({ formData }: FormPreviewProps) {
       case "slider":
         return (
           <div className="space-y-2" key={element.id}>
-            <Label htmlFor={element.id.toString()}>{element.label || element.template.label}</Label>
+            <Label htmlFor={element.id.toString()}>
+              {translate(element.label || element.template.label)}
+            </Label>
             <div className="flex items-center gap-2">
               <span className="text-sm">{element.properties?.min || 0}</span>
               <Input
@@ -296,7 +317,7 @@ export default function FormPreview({ formData }: FormPreviewProps) {
       case "rating":
         return (
           <div className="space-y-2" key={element.id}>
-            <Label>{element.label || element.template.label}</Label>
+            <Label>{translate(element.label || element.template.label)}</Label>
             <div className="flex gap-1">
               {Array.from({ length: element.properties?.max || 5 }).map((_, index) => (
                 <Button
@@ -318,7 +339,9 @@ export default function FormPreview({ formData }: FormPreviewProps) {
       case "toggle":
         return (
           <div className="flex items-center justify-between space-y-0" key={element.id}>
-            <Label htmlFor={element.id.toString()}>{element.label || element.template.label}</Label>
+            <Label htmlFor={element.id.toString()}>
+              {translate(element.label || element.template.label)}
+            </Label>
             <div className="ml-auto">
               <Checkbox
                 id={element.id.toString()}
@@ -332,7 +355,7 @@ export default function FormPreview({ formData }: FormPreviewProps) {
       case "image":
         return (
           <div className="space-y-2" key={element.id}>
-            <Label>{element.label || element.template.label}</Label>
+            <Label>{translate(element.label || element.template.label)}</Label>
             <div className="border rounded-md p-2 flex justify-center">
               <img
                 src="/placeholder.svg?height=150&width=300"
@@ -364,10 +387,12 @@ export default function FormPreview({ formData }: FormPreviewProps) {
     <div className="p-4 max-w-2xl mx-auto">
       <Card className="shadow-sm">
         <CardHeader>
-          <CardTitle>{currentPage?.title || "Untitled Page"}</CardTitle>
-          {currentPage?.description && <CardDescription>{currentPage.description}</CardDescription>}
+          <CardTitle>{translate(currentPage?.title || "Untitled Page")}</CardTitle>
+          {currentPage?.description && (
+            <CardDescription>{translate(currentPage.description)}</CardDescription>
+          )}
           <div className="text-sm text-muted-foreground">
-            Group: {currentGroup?.title || "Untitled Group"}
+            Group: {translate(currentGroup?.title || "Untitled Group")}
           </div>
           <div className="text-sm text-muted-foreground">
             Page {currentPageIndex + 1} of {allPages.length}

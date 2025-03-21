@@ -21,6 +21,7 @@ import {
 import { TranslationInput } from "../translation-input";
 import { TranslationTextarea } from "../translation-textarea";
 import type { Dictionary } from "@repo/internationalization";
+import { Input } from "@repo/ui/components/ui/input";
 
 interface FormStepProps {
   dictionary: Dictionary;
@@ -47,11 +48,7 @@ export default function FormStep({ dictionary }: FormStepProps) {
             <FormItem>
               <FormLabel>Form Title</FormLabel>
               <FormControl>
-                <TranslationInput
-                  placeholder="Enter form title"
-                  dictionary={dictionary}
-                  {...field}
-                />
+                <Input {...field} placeholder="Enter form title" />
               </FormControl>
               <FormMessage />
             </FormItem>

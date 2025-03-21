@@ -99,6 +99,12 @@ export default function ElementsStep({ dictionary }: ElementsStepProps) {
     }
   };
 
+  // Translate content if it's a translation key
+  const translateContent = (content: string | null | undefined): string => {
+    if (!content) return "";
+    return content in dictionary ? dictionary[content as keyof typeof dictionary] : content;
+  };
+
   // Get element type label
   const getElementTypeLabel = (type: string) => {
     const elementType = elementTypes.find((t) => t.value === type);
@@ -106,17 +112,15 @@ export default function ElementsStep({ dictionary }: ElementsStepProps) {
   };
 
   const getElementLabel = (index: number) => {
-    return fields[index] && fields[index].label in dictionary
-      ? dictionary[fields[index].label as keyof typeof dictionary]
-      : `Element ${index + 1}`;
+    const label = watch(`elements.${index}.label`);
+    return translateContent(label) || `Element ${index + 1}`;
   };
 
   const getElementPageTitle = (index: number) => {
-    const page = pages.find((p) => p.id === fields[index]?.pageId);
+    const pageId = watch(`elements.${index}.pageId`);
+    const page = pages.find((p) => p.id === pageId);
     if (!page) return "Unknown Page";
-    return page && page.title in dictionary
-      ? dictionary[page.title as keyof typeof dictionary]
-      : `Page ${pages.indexOf(page) + 1}`;
+    return translateContent(page.title) || `Page ${pages.indexOf(page) + 1}`;
   };
 
   return (
@@ -238,9 +242,8 @@ export default function ElementsStep({ dictionary }: ElementsStepProps) {
                             <SelectContent>
                               {pages.map((page) => (
                                 <SelectItem key={page.id} value={page.id}>
-                                  {page.title in dictionary
-                                    ? dictionary[page.title as keyof typeof dictionary]
-                                    : `Page ${pages.indexOf(page) + 1}`}
+                                  {translateContent(page.title) ||
+                                    `Page ${pages.indexOf(page) + 1}`}
                                 </SelectItem>
                               ))}
                             </SelectContent>
