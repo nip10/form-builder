@@ -32,19 +32,23 @@ import {
 } from "@repo/ui/components/ui/accordion";
 import type { Dictionary } from "@repo/internationalization";
 import { TranslationInput } from "../translation-input";
+import { elementTypeEnum } from "@repo/database/src/schema";
 
 // Element types based on the schema
-const elementTypes = [
+const elementTypes: { value: (typeof elementTypeEnum.enumValues)[number]; label: string }[] = [
   { value: "text_input", label: "Text Input" },
   { value: "number_input", label: "Number Input" },
-  { value: "email", label: "Email" },
   { value: "checkbox", label: "Checkbox" },
   { value: "radio", label: "Radio" },
   { value: "select", label: "Select" },
   { value: "textarea", label: "Text Area" },
   { value: "image", label: "Image" },
-  { value: "text", label: "Text" },
   { value: "date", label: "Date" },
+  { value: "range", label: "Range" },
+  { value: "rating", label: "Rating" },
+  { value: "slider", label: "Slider" },
+  { value: "switch", label: "Switch" },
+  { value: "toggle", label: "Toggle" },
 ];
 
 interface ElementsStepProps {
