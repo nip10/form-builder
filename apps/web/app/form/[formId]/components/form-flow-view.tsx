@@ -215,11 +215,9 @@ export default function FormFlowView(props: FormFlowViewProps) {
           animated: false,
         });
 
-        // Add element nodes for this page
-        const elementsInPage = props.formData.groups
-          .flatMap((group) => group.pages)
-          .flatMap((page) => page.elements);
-        elementsInPage.forEach((element, elementIndex) => {
+        // Add element nodes for this page (only elements that belong to this page)
+        const elementsForThisPage = page.elements || [];
+        elementsForThisPage.forEach((element, elementIndex) => {
           if (!element) return;
           const elementId = `element-${element.id}`;
           nodes.push({
@@ -234,7 +232,7 @@ export default function FormFlowView(props: FormFlowViewProps) {
             position: { x: 500, y: groupIndex * 300 + pageIndex * 150 + elementIndex * 80 + 150 },
           });
 
-          // Connect page to element
+          // Connect page to element (only connecting to elements of this page)
           edges.push({
             id: `${pageId}-to-${elementId}`,
             source: pageId,
