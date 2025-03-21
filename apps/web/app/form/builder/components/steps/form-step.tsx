@@ -2,7 +2,6 @@
 
 import { useFormContext } from "react-hook-form";
 import type { FormBuilderData } from "../form-builder";
-import { Input } from "@repo/ui/components/ui/input";
 import { Textarea } from "@repo/ui/components/ui/textarea";
 import {
   FormField,
@@ -66,11 +65,10 @@ export default function FormStep({ dictionary }: FormStepProps) {
             <FormItem className="mt-4">
               <FormLabel>Description</FormLabel>
               <FormControl>
-                <TranslationTextarea
+                <Textarea
                   placeholder="Enter form description"
                   className="resize-none"
                   rows={4}
-                  dictionary={dictionary}
                   {...field}
                 />
               </FormControl>

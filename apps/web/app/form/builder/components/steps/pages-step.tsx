@@ -180,11 +180,10 @@ export default function PagesStep({ dictionary }: PagesStepProps) {
                         <FormItem className="mt-2">
                           <FormLabel>Description</FormLabel>
                           <FormControl>
-                            <TranslationTextarea
+                            <Textarea
                               placeholder="Enter page description"
                               className="resize-none"
                               rows={3}
-                              dictionary={dictionary}
                               {...field}
                             />
                           </FormControl>

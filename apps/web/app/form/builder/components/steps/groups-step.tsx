@@ -145,11 +145,10 @@ export default function GroupsStep({ dictionary }: GroupsStepProps) {
                         <FormItem className="mt-2">
                           <FormLabel>Description</FormLabel>
                           <FormControl>
-                            <TranslationTextarea
+                            <Textarea
                               placeholder="Enter group description"
                               className="resize-none"
                               rows={3}
-                              dictionary={dictionary}
                               {...field}
                             />
                           </FormControl>
